@@ -1,13 +1,9 @@
-package pt.ipca.hometask
+package Pages
 
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
+import android.util.Log
 import androidx.compose.animation.animateColor
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateDp
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.foundation.*
@@ -23,29 +19,17 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.*
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import pt.ipca.hometask.R
 import pt.ipca.hometask.ui.theme.HomeTaskTheme
 
-class MainActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContent {
-            HomeTaskTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    SplashScreen(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(innerPadding)
-                    )
-                }
-            }
-        }
-    }
-}
-
 @Composable
-fun SplashScreen(modifier: Modifier = Modifier) {
+fun SplashScreen(
+    modifier: Modifier = Modifier,
+    onNavigateToLogin: () -> Unit,
+    onNavigateToRegister: () -> Unit
+) {
     var selected by remember { mutableStateOf("register") }
+    Log.d("SplashScreen", "SplashScreen composable called with selected: $selected")
 
     Box(
         modifier = modifier
@@ -73,20 +57,27 @@ fun SplashScreen(modifier: Modifier = Modifier) {
 
             ToggleButtonSwitch(
                 selected = selected,
-                onSelect = { selected = it },
-                onLoginClick = { if (selected == "login") { /* Navegar para Login */ } },
-                onRegisterClick = { if (selected == "register") { /* Navegar para Registo */ } }
+                onSelect = { 
+                    Log.d("SplashScreen", "ToggleButtonSwitch onSelect called with: $it")
+                    selected = it 
+                },
+                onLoginClick = { 
+                    Log.d("SplashScreen", "Login button clicked")
+                    onNavigateToLogin() 
+                },
+                onRegisterClick = { 
+                    Log.d("SplashScreen", "Register button clicked")
+                    onNavigateToRegister() 
+                }
             )
 
             Spacer(modifier = Modifier.height(32.dp))
 
             Button(
                 onClick = {
-                    if (selected == "login") {
-
-                    } else {
-
-                    }
+                    Log.d("SplashScreen", "Continue button clicked with selected: $selected")
+                    if (selected == "login") onNavigateToLogin()
+                    else onNavigateToRegister()
                 },
                 shape = RoundedCornerShape(15.dp),
                 border = BorderStroke(2.dp, colorResource(id = R.color.secondary_blue)),
@@ -103,6 +94,7 @@ fun SplashScreen(modifier: Modifier = Modifier) {
         }
     }
 }
+
 
 @Composable
 fun ToggleButtonSwitch(
@@ -196,22 +188,13 @@ fun ToggleButtonSwitch(
     }
 }
 
-@Composable
-fun LoginScreen() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(colorResource(id = R.color.background)),
-        contentAlignment = Alignment.Center
-    ) {
-        Text("Bem-vindo ao Login!")
-    }
-}
-
 @Preview(showBackground = true)
 @Composable
 fun SplashScreenPreview() {
     HomeTaskTheme {
-        SplashScreen()
+        SplashScreen(
+            onNavigateToLogin = {},
+            onNavigateToRegister = {}
+        )
     }
 }

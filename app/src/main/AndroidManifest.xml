@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+    xmlns:tools="http://schemas.android.com/tools"
+    package="pt.ipca.hometask">
 
     <application
         android:allowBackup="true"
@@ -13,7 +14,10 @@
         android:theme="@style/Theme.HomeTask"
         tools:targetApi="31">
         <activity
-            android:name=".LoginActivity"
+            android:name="Pages.LoginPage"
+            android:exported="false" />
+        <activity
+            android:name="Modules.TextBox"
             android:exported="false" />
         <activity
             android:name=".MainActivity"

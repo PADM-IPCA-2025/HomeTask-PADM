@@ -14,6 +14,9 @@
         android:theme="@style/Theme.HomeTask"
         tools:targetApi="31">
         <activity
+            android:name="Pages.RegisterPage"
+            android:exported="false" />
+        <activity
             android:name="Pages.LoginPage"
             android:exported="false" />
         <activity

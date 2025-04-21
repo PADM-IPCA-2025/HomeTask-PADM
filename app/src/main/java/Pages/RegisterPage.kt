@@ -3,8 +3,8 @@ package Pages
 import Modules.CustomButton
 import Modules.CustomTextBox
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -24,16 +24,16 @@ import androidx.compose.ui.unit.sp
 import pt.ipca.hometask.R
 
 @Composable
-fun LoginScreen(
-    onNavigateToRegister: () -> Unit,
-    onNavigateToRecover: () -> Unit
+fun RegisterScreen(
+    onNavigateToLogin: () -> Unit
 ) {
+    var username by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-
-        // Conteúdo principal (campos + recovery)
+    Box(
+        modifier = Modifier.fillMaxSize()
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -55,7 +55,7 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(129.dp))
 
             Text(
-                text = "Login",
+                text = "Create Account",
                 style = TextStyle(
                     fontSize = 30.sp,
                     fontFamily = FontFamily(Font(R.font.inter_bold)),
@@ -63,6 +63,14 @@ fun LoginScreen(
                     color = colorResource(id = R.color.secondary_blue),
                     letterSpacing = 0.6.sp,
                 )
+            )
+
+            Spacer(modifier = Modifier.height(15.dp))
+
+            CustomTextBox(
+                value = username,
+                onValueChange = { username = it },
+                placeholder = "Username"
             )
 
             CustomTextBox(
@@ -77,27 +85,6 @@ fun LoginScreen(
                 placeholder = "Password",
                 isPassword = true
             )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Box(
-                modifier = Modifier
-                    .width(328.dp),
-                contentAlignment = Alignment.CenterEnd
-            ) {
-                Text(
-                    text = "Recovery Password",
-                    modifier = Modifier.clickable { onNavigateToRecover() },
-                    style = TextStyle(
-                        fontSize = 14.sp,
-                        fontFamily = FontFamily(Font(R.font.inter_bold)),
-                        fontWeight = FontWeight(400),
-                        color = colorResource(id = R.color.secondary_blue),
-                        letterSpacing = 0.28.sp,
-                        textDecoration = TextDecoration.Underline
-                    )
-                )
-            }
         }
 
         Column(
@@ -108,24 +95,24 @@ fun LoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             CustomButton(
-                text = "Login",
-                onClick = { /* ação de login */ }
+                text = "Create Account",
+                onClick = { /* ação de criação de conta */ }
             )
 
             Spacer(modifier = Modifier.height(15.dp))
 
             ClickableText(
                 text = buildAnnotatedString {
-                    append("Not a member? ")
+                    append("Already have an account? ")
                     withStyle(
                         style = SpanStyle(
                             fontFamily = FontFamily(Font(R.font.inter_bold)),
                             fontWeight = FontWeight(700),
                             textDecoration = TextDecoration.Underline,
-                            color = colorResource(id = R.color.secondary_blue),
+                            color = Color(0x800A1B1F)
                         )
                     ) {
-                        append("Register now")
+                        append("Login")
                     }
                 },
                 style = TextStyle(
@@ -136,8 +123,8 @@ fun LoginScreen(
                     letterSpacing = 0.7.sp
                 ),
                 onClick = { offset ->
-                    if (offset >= 13) {
-                        onNavigateToRegister()
+                    if (offset >= 26) {
+                        onNavigateToLogin()
                     }
                 }
             )

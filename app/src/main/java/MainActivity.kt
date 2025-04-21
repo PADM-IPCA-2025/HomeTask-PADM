@@ -2,6 +2,8 @@ package pt.ipca.hometask
 
 import Pages.SplashScreen
 import Pages.LoginScreen
+import Pages.RecoverPassword
+import Pages.RegisterScreen
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -47,17 +49,27 @@ fun NavigationRouter() {
             )
         }
         composable("login") {
-            Log.d("NavigationRouter", "Rendering login screen")
             LoginScreen(
-                onNavigateToRegister = {
-                    Log.d("NavigationRouter", "Navigating to register from login")
-                    navController.navigate("register")
-                }
+                onNavigateToRegister = { navController.navigate("register") },
+                onNavigateToRecover = { navController.navigate("recover") }
             )
         }
         composable("register") {
             Log.d("NavigationRouter", "Rendering register screen")
-            //RegisterScreen()
+            RegisterScreen(
+                onNavigateToLogin = {
+                    Log.d("NavigationRouter", "Navigating to login from register")
+                    navController.navigate("login")
+                }
+            )
         }
+        composable("recover") {
+            RecoverPassword(
+                onBackClick = { navController.popBackStack() },
+                onContinueClick = { /* ação de envio de email ou código */ }
+            )
+        }
+
+
     }
 }

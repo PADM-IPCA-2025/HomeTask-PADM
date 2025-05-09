@@ -109,7 +109,7 @@ fun RegisterScreen(
                             fontFamily = FontFamily(Font(R.font.inter_bold)),
                             fontWeight = FontWeight(700),
                             textDecoration = TextDecoration.Underline,
-                            color = Color(0x800A1B1F)
+                            color = colorResource(id = R.color.secondary_blue),
                         )
                     ) {
                         append("Login")

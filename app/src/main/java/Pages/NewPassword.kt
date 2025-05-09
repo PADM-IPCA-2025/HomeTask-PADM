@@ -3,55 +3,67 @@ package Pages
 import Modules.CustomButton
 import Modules.CustomTextBox
 import Modules.TopBar
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.ClickableText
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.colorResource
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.*
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import pt.ipca.hometask.R
 
 @Composable
-fun RecoverPassword(
-    onBackClick: () -> Unit,
-    onContinueClick: () -> Unit
+fun NewPassword(
+    onContinue: () -> Unit,
+    onBackClick: () -> Unit
 ) {
-    var input by remember { mutableStateOf("") }
+    var newPassword by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
 
     Box(modifier = Modifier.fillMaxSize()) {
-
+        // TopBar section
         Column {
             Spacer(modifier = Modifier.height(40.dp))
 
             TopBar(
-                title = "Recover Password",
+                title = "Enter New Password",
                 onBackClick = onBackClick
             )
         }
 
+        // Input fields section
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(345.dp))
+            Spacer(modifier = Modifier.height(284.dp))
 
             CustomTextBox(
-                value = input,
-                onValueChange = { input = it },
-                placeholder = "Email or Phone Number"
+                value = newPassword,
+                onValueChange = { newPassword = it },
+                placeholder = "New Password",
+                isPassword = true
+            )
+
+            CustomTextBox(
+                value = confirmPassword,
+                onValueChange = { confirmPassword = it },
+                placeholder = "Confirm Password",
+                isPassword = true
             )
         }
 
@@ -64,10 +76,9 @@ fun RecoverPassword(
         ) {
             CustomButton(
                 text = "Continue",
-                onClick = onContinueClick
+                onClick = onContinue,
             )
             Spacer(modifier = Modifier.height(32.dp))
-
         }
     }
 }

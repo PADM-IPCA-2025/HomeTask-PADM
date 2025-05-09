@@ -65,6 +65,9 @@ fun LoginScreen(
                 )
             )
 
+            Spacer(modifier = Modifier.height(15.dp))
+
+
             CustomTextBox(
                 value = email,
                 onValueChange = { email = it },

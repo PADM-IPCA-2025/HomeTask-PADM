@@ -41,37 +41,41 @@ fun SplashScreen(
                 .fillMaxSize()
                 .padding(horizontal = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Top
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Spacer(modifier = Modifier.height(266.dp))
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Spacer(modifier = Modifier.height(266.dp))
 
-            Image(
-                painter = painterResource(id = R.drawable.logotipo),
-                contentDescription = "Logo da app",
-                contentScale = ContentScale.Fit,
-                modifier = Modifier
-                    .size(250.dp)
-            )
+                Image(
+                    painter = painterResource(id = R.drawable.logotipo),
+                    contentDescription = "Logo da app",
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier
+                        .size(250.dp)
+                )
 
-            Spacer(modifier = Modifier.height(169.dp))
+                Spacer(modifier = Modifier.height(169.dp))
 
-            ToggleButtonSwitch(
-                selected = selected,
-                onSelect = { 
-                    Log.d("SplashScreen", "ToggleButtonSwitch onSelect called with: $it")
-                    selected = it 
-                },
-                onLoginClick = { 
-                    Log.d("SplashScreen", "Login button clicked")
-                    onNavigateToLogin() 
-                },
-                onRegisterClick = { 
-                    Log.d("SplashScreen", "Register button clicked")
-                    onNavigateToRegister() 
-                }
-            )
+                ToggleButtonSwitch(
+                    selected = selected,
+                    onSelect = { 
+                        Log.d("SplashScreen", "ToggleButtonSwitch onSelect called with: $it")
+                        selected = it 
+                    },
+                    onLoginClick = { 
+                        Log.d("SplashScreen", "Login button clicked")
+                        onNavigateToLogin() 
+                    },
+                    onRegisterClick = { 
+                        Log.d("SplashScreen", "Register button clicked")
+                        onNavigateToRegister() 
+                    }
+                )
 
-            Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(32.dp))
+            }
 
             Button(
                 onClick = {

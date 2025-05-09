@@ -2,8 +2,10 @@ package pt.ipca.hometask
 
 import Pages.SplashScreen
 import Pages.LoginScreen
+import Pages.NewPassword
 import Pages.RecoverPassword
 import Pages.RegisterScreen
+import Pages.VerificationCode
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -19,8 +21,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        Log.d("MainActivity", "onCreate called")
-
         setContent {
             HomeTaskTheme {
                 NavigationRouter()
@@ -32,18 +32,14 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun NavigationRouter() {
     val navController = rememberNavController()
-    Log.d("NavigationRouter", "NavigationRouter composable called")
 
     NavHost(navController = navController, startDestination = "splash") {
         composable("splash") {
-            Log.d("NavigationRouter", "Rendering splash screen")
             SplashScreen(
-                onNavigateToLogin = { 
-                    Log.d("NavigationRouter", "Navigating to login")
+                onNavigateToLogin = {
                     navController.navigate("login") 
                 },
-                onNavigateToRegister = { 
-                    Log.d("NavigationRouter", "Navigating to register")
+                onNavigateToRegister = {
                     navController.navigate("register") 
                 }
             )
@@ -58,7 +54,6 @@ fun NavigationRouter() {
             Log.d("NavigationRouter", "Rendering register screen")
             RegisterScreen(
                 onNavigateToLogin = {
-                    Log.d("NavigationRouter", "Navigating to login from register")
                     navController.navigate("login")
                 }
             )
@@ -66,10 +61,21 @@ fun NavigationRouter() {
         composable("recover") {
             RecoverPassword(
                 onBackClick = { navController.popBackStack() },
-                onContinueClick = { /* ação de envio de email ou código */ }
+                onContinueClick = {navController.navigate("verification")}
             )
         }
-
-
+        composable("verification") {
+            VerificationCode(
+                onBackClick = { navController.popBackStack() },
+                onSubmitClick = {navController.navigate("newPassword")},
+                onResendClick = {}
+            )
+        }
+        composable("newPassword") {
+            NewPassword(
+                onContinue = {navController.navigate("login")},
+                onBackClick = { navController.popBackStack() }
+            )
+        }
     }
 }

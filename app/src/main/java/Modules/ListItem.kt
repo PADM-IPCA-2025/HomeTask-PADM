@@ -1,12 +1,14 @@
 package Modules
 
-
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -15,11 +17,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
@@ -27,98 +31,99 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import pt.ipca.hometask.R
+import kotlin.math.roundToInt
 
 @Composable
-fun SliderListItem(
-    title: String,
-    subtitle: String,
+fun ListItem(
+    houseName: String,
+    address: String,
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
     var offsetX by remember { mutableStateOf(0f) }
+    val swipeableDistance = 350f
 
     Box(
         modifier = Modifier
             .width(350.dp)
             .height(70.dp)
-            .background(Color.Transparent)
+            .clip(RoundedCornerShape(10.dp))
     ) {
-        // Background actions (edit/delete)
         Row(
             modifier = Modifier
-                .matchParentSize()
-                .background(Color(0xFFB0BEC5)), // light gray background for actions
+                .fillMaxSize()
+                .background(colorResource(id = R.color.secondary_blue)),
             horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onEdit) {
+            IconButton(
+                onClick = onEdit,
+                modifier = Modifier.size(48.dp)
+            ) {
                 Icon(
-                    imageVector = ImageVector.vectorResource(id = R.drawable.icon),
+                    Icons.Default.Edit,
                     contentDescription = "Edit",
-                    tint = Color.White
+                    tint = colorResource(id = R.color.white),
+                    modifier = Modifier.size(24.dp)
                 )
             }
-            IconButton(onClick = onDelete) {
+            Spacer(modifier = Modifier.width(4.dp))
+            IconButton(
+                onClick = onDelete,
+                modifier = Modifier.size(48.dp)
+            ) {
                 Icon(
-                    imageVector = ImageVector.vectorResource(id = R.drawable.ic_delete),
+                    Icons.Default.Delete,
                     contentDescription = "Delete",
-                    tint = Color.White
+                    tint = colorResource(id = R.color.white),
+                    modifier = Modifier.size(24.dp)
                 )
             }
+            Spacer(modifier = Modifier.width(4.dp))
         }
 
-        // Foreground content
-        Column(
+        // Item principal
+        Box(
             modifier = Modifier
-                .offset { IntOffset(offsetX.toInt(), 0) }
-                .fillMaxHeight()
-                .background(Color(0xFF33969D), RoundedCornerShape(10.dp))
+                .offset { IntOffset(offsetX.roundToInt(), 0) }
+                .fillMaxSize()
+                .background(colorResource(id = R.color.listitem_blue))
                 .pointerInput(Unit) {
-                    detectHorizontalDragGestures { _, dragAmount ->
-                        offsetX = (offsetX + dragAmount).coerceIn(-150f, 0f)
+                    detectHorizontalDragGestures(
+                        onDragEnd = {
+                            // Snap to position
+                            offsetX = if (offsetX < -swipeableDistance / 2) {
+                                -swipeableDistance
+                            } else {
+                                0f
+                            }
+                        }
+                    ) { _, dragAmount ->
+                        val newOffset = offsetX + dragAmount
+                        offsetX = newOffset.coerceIn(-swipeableDistance, 0f)
                     }
                 }
-                .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
-            Text(text = title, fontWeight = FontWeight.Bold, color = Color.Black)
-            Text(text = subtitle, fontSize = 14.sp, color = Color.White)
+            Column(
+                modifier = Modifier
+                    .padding(12.dp)
+                    .fillMaxSize(),
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = houseName,
+                    fontSize = 16.sp,
+                    color = colorResource(id = R.color.main_blue)
+                )
+                Text(
+                    text = address,
+                    fontSize = 14.sp,
+                    color = colorResource(id = R.color.white)
+                )
+            }
         }
     }
 }
 
-@Composable
-fun ImageRadioListItem(
-    imageRes: Int,
-    title: String,
-    subtitle: String,
-    selected: Boolean,
-    onSelect: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .width(350.dp)
-            .height(70.dp)
-            .background(Color(0xFF33969D), RoundedCornerShape(10.dp))
-            .padding(8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Image(
-            painter = painterResource(id = imageRes),
-            contentDescription = null,
-            modifier = Modifier
-                .size(50.dp)
-                .padding(end = 8.dp),
-            contentScale = ContentScale.Crop
-        )
 
-        Column(modifier = Modifier.weight(1f)) {
-            Text(text = title, fontWeight = FontWeight.Bold, color = Color.Black)
-            Text(text = subtitle, fontSize = 14.sp, color = Color.White)
-        }
 
-        RadioButton(
-            selected = selected,
-            onClick = onSelect
-        )
-    }
-}

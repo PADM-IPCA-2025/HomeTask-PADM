@@ -11,4 +11,5 @@
     <color name="main_blue">#0A1B1F</color>
     <color name="secondary_blue">#1B4B5F</color>
     <color name="washed_blue">#EFF7FB</color>
+    <color name="listitem_blue">#328E9D</color>
 </resources>

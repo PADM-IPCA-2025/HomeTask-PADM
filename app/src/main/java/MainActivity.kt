@@ -1,5 +1,6 @@
 package pt.ipca.hometask
 
+import Pages.HomeMenu
 import Pages.SplashScreen
 import Pages.LoginScreen
 import Pages.NewPassword
@@ -47,7 +48,8 @@ fun NavigationRouter() {
         composable("login") {
             LoginScreen(
                 onNavigateToRegister = { navController.navigate("register") },
-                onNavigateToRecover = { navController.navigate("recover") }
+                onNavigateToRecover = { navController.navigate("recover") },
+                onNavigateToMenu = {navController.navigate("homeMenu")}
             )
         }
         composable("register") {
@@ -75,6 +77,10 @@ fun NavigationRouter() {
             NewPassword(
                 onContinue = {navController.navigate("login")},
                 onBackClick = { navController.popBackStack() }
+            )
+        }
+        composable("homeMenu") {
+            HomeMenu(
             )
         }
     }

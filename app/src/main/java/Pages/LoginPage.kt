@@ -26,7 +26,8 @@ import pt.ipca.hometask.R
 @Composable
 fun LoginScreen(
     onNavigateToRegister: () -> Unit,
-    onNavigateToRecover: () -> Unit
+    onNavigateToRecover: () -> Unit,
+    onNavigateToMenu: () -> Unit
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -112,7 +113,7 @@ fun LoginScreen(
         ) {
             CustomButton(
                 text = "Login",
-                onClick = { /* ação de login */ }
+                onClick = { onNavigateToMenu()}
             )
 
             Spacer(modifier = Modifier.height(15.dp))

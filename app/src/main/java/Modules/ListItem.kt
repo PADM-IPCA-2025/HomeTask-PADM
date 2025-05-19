@@ -45,7 +45,7 @@ fun ListItem(
 
     Box(
         modifier = Modifier
-            .width(350.dp)
+            .width(380.dp)
             .height(70.dp)
             .clip(RoundedCornerShape(10.dp))
     ) {
@@ -82,7 +82,6 @@ fun ListItem(
             Spacer(modifier = Modifier.width(4.dp))
         }
 
-        // Item principal
         Box(
             modifier = Modifier
                 .offset { IntOffset(offsetX.roundToInt(), 0) }
@@ -91,7 +90,6 @@ fun ListItem(
                 .pointerInput(Unit) {
                     detectHorizontalDragGestures(
                         onDragEnd = {
-                            // Snap to position
                             offsetX = if (offsetX < -swipeableDistance / 2) {
                                 -swipeableDistance
                             } else {

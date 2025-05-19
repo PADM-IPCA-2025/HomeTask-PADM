@@ -29,7 +29,7 @@ fun TaskListItem(
 ) {
     Box(
         modifier = Modifier
-            .width(350.dp)
+            .width(380.dp)
             .height(70.dp)
             .clip(RoundedCornerShape(10.dp))
             .background(colorResource(id = R.color.listitem_blue))
@@ -40,7 +40,6 @@ fun TaskListItem(
                 .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Imagem da tarefa
             Image(
                 painter = painterResource(id = imageRes),
                 contentDescription = "Task Image",
@@ -52,7 +51,6 @@ fun TaskListItem(
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            // Textos (nome da tarefa e data)
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.Center
@@ -69,7 +67,6 @@ fun TaskListItem(
                 )
             }
 
-            // Radio Button
             RadioButton(
                 selected = isCompleted,
                 onClick = { onStatusChange(!isCompleted) },

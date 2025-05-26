@@ -20,6 +20,7 @@ import Modules.TopBar
 import Modules.ProfilePicture
 import Modules.CustomTextBox
 import Modules.CustomButton
+import Modules.BottomMenuBar
 import pt.ipca.hometask.R
 
 @Composable
@@ -44,7 +45,8 @@ fun EditProfilePage(
                 onRightIconClick = onSettingsClick
             )
         },
-        containerColor = colorResource(id = R.color.background)
+        containerColor = colorResource(id = R.color.background)    ,
+        bottomBar={ BottomMenuBar(onHomeClick = { /* Navegação para home */ }, onProfileClick = { /* Navegação para perfil */ })}
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -147,9 +149,9 @@ fun EditProfilePage(
                 onClick = onLogoutClick,
                 isDanger = true
             )
-
-            Spacer(modifier = Modifier.height(32.dp))
         }
+
+
     }
 }
 

@@ -28,34 +28,28 @@ fun EditProfilePage(
     onSettingsClick: () -> Unit = {},
     onSaveClick: () -> Unit = {},
     onLogoutClick: () -> Unit = {},
-    onEditPhotoClick: () -> Unit = {}
+    onEditPhotoClick: () -> Unit = {},
+    onHomeClick:()-> Unit={}
 ) {
     // Estados para os campos de texto
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
-    Scaffold(
-        topBar = {
-            TopBar(
-                title = "Profile",
-                onBackClick = onBackClick,
-                rightIcon = Icons.Default.Settings,
-                onRightIconClick = onSettingsClick
-            )
-        },
-        containerColor = colorResource(id = R.color.background)    ,
-        bottomBar={ BottomMenuBar(onHomeClick = { /* Navegação para home */ }, onProfileClick = { /* Navegação para perfil */ })}
-    ) { paddingValues ->
+    Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = 32.dp)
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(32.dp))
+            TopBar(
+                title = "Preferences",
+                onBackClick = onBackClick
+            )
+            Spacer(modifier = Modifier.height(40.dp))
 
             // Foto de perfil com botão de editar
             ProfilePicture(
@@ -72,12 +66,7 @@ fun EditProfilePage(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.Start
             ) {
-                androidx.compose.material3.Text(
-                    text = "Name",
-                    color = colorResource(id = R.color.secondary_blue),
-                    fontSize = 14.sp,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
+
 
                 CustomTextBox(
                     value = name,
@@ -93,12 +82,6 @@ fun EditProfilePage(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.Start
             ) {
-                androidx.compose.material3.Text(
-                    text = "E-mail",
-                    color = colorResource(id = R.color.secondary_blue),
-                    fontSize = 14.sp,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
 
                 CustomTextBox(
                     value = email,
@@ -117,12 +100,6 @@ fun EditProfilePage(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.Start
             ) {
-                androidx.compose.material3.Text(
-                    text = "Password",
-                    color = colorResource(id = R.color.secondary_blue),
-                    fontSize = 14.sp,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
 
                 CustomTextBox(
                     value = password,
@@ -147,6 +124,16 @@ fun EditProfilePage(
                 text = "Logout",
                 onClick = onLogoutClick,
                 isDanger = true
+            )
+        }
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+        ) {
+            BottomMenuBar(
+                onHomeClick = onHomeClick,
+                onProfileClick = {}
             )
         }
 

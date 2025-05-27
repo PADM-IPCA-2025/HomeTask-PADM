@@ -87,6 +87,8 @@ fun NavigationRouter() {
         }
         composable("editProfile") {
             EditProfilePage(
+                onHomeClick ={navController.navigate("homeMenu")},
+                onBackClick={navController.navigate("homeMenu")}
             )
         }
     }

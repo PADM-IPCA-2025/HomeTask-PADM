@@ -1,10 +1,10 @@
-package Pages
+package pages
 
-import Modules.CustomButton
-import Modules.CustomTextBox
+import modules.CustomTextBox
+import modules.CustomButton
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -24,16 +24,17 @@ import androidx.compose.ui.unit.sp
 import pt.ipca.hometask.R
 
 @Composable
-fun RegisterScreen(
-    onNavigateToLogin: () -> Unit
+fun LoginScreen(
+    onNavigateToRegister: () -> Unit,
+    onNavigateToRecover: () -> Unit,
+    onNavigateToMenu: () -> Unit
 ) {
-    var username by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
-    Box(
-        modifier = Modifier.fillMaxSize()
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
+
+        // Conteúdo principal (campos + recovery)
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -55,7 +56,7 @@ fun RegisterScreen(
             Spacer(modifier = Modifier.height(129.dp))
 
             Text(
-                text = "Create Account",
+                text = "Login",
                 style = TextStyle(
                     fontSize = 30.sp,
                     fontFamily = FontFamily(Font(R.font.inter_bold)),
@@ -67,11 +68,6 @@ fun RegisterScreen(
 
             Spacer(modifier = Modifier.height(15.dp))
 
-            CustomTextBox(
-                value = username,
-                onValueChange = { username = it },
-                placeholder = "Username"
-            )
 
             CustomTextBox(
                 value = email,
@@ -85,6 +81,27 @@ fun RegisterScreen(
                 placeholder = "Password",
                 isPassword = true
             )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Box(
+                modifier = Modifier
+                    .width(328.dp),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                Text(
+                    text = "Recovery Password",
+                    modifier = Modifier.clickable { onNavigateToRecover() },
+                    style = TextStyle(
+                        fontSize = 14.sp,
+                        fontFamily = FontFamily(Font(R.font.inter_bold)),
+                        fontWeight = FontWeight(400),
+                        color = colorResource(id = R.color.secondary_blue),
+                        letterSpacing = 0.28.sp,
+                        textDecoration = TextDecoration.Underline
+                    )
+                )
+            }
         }
 
         Column(
@@ -95,15 +112,15 @@ fun RegisterScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             CustomButton(
-                text = "Create Account",
-                onClick = { /* ação de criação de conta */ }
+                text = "Login",
+                onClick = { onNavigateToMenu()}
             )
 
             Spacer(modifier = Modifier.height(15.dp))
 
             ClickableText(
                 text = buildAnnotatedString {
-                    append("Already have an account? ")
+                    append("Not a member? ")
                     withStyle(
                         style = SpanStyle(
                             fontFamily = FontFamily(Font(R.font.inter_bold)),
@@ -112,7 +129,7 @@ fun RegisterScreen(
                             color = colorResource(id = R.color.secondary_blue),
                         )
                     ) {
-                        append("Login")
+                        append("Register now")
                     }
                 },
                 style = TextStyle(
@@ -123,8 +140,8 @@ fun RegisterScreen(
                     letterSpacing = 0.7.sp
                 ),
                 onClick = { offset ->
-                    if (offset >= 26) {
-                        onNavigateToLogin()
+                    if (offset >= 13) {
+                        onNavigateToRegister()
                     }
                 }
             )

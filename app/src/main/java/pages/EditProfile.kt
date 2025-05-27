@@ -1,6 +1,5 @@
-package Pages
+package pages
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -16,11 +15,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.text.KeyboardOptions
-import Modules.TopBar
-import Modules.ProfilePicture
-import Modules.CustomTextBox
-import Modules.CustomButton
-import Modules.BottomMenuBar
+import modules.TopBar
+import modules.ProfilePicture
+import modules.CustomTextBox
+import modules.CustomButton
+import modules.BottomMenuBar
 import pt.ipca.hometask.R
 
 @Composable

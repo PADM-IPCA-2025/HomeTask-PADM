@@ -1,12 +1,12 @@
 package pt.ipca.hometask
 
-import Pages.HomeMenu
-import Pages.SplashScreen
-import Pages.LoginScreen
-import Pages.NewPassword
-import Pages.RecoverPassword
-import Pages.RegisterScreen
-import Pages.VerificationCode
+import pages.HomeMenu
+import pages.SplashScreen
+import pages.LoginScreen
+import pages.NewPassword
+import pages.RecoverPassword
+import pages.RegisterScreen
+import pages.VerificationCode
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity

@@ -1,7 +1,7 @@
-package Pages
+package pages
 
-import Modules.CustomButton
-import Modules.TopBar
+import modules.CustomButton
+import modules.TopBar
 import android.view.KeyEvent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.ClickableText

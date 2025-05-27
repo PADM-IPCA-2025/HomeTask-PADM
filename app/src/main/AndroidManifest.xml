@@ -14,13 +14,13 @@
         android:theme="@style/Theme.HomeTask"
         tools:targetApi="31">
         <activity
-            android:name="Pages.RegisterPage"
+            android:name="pages.RegisterPage"
             android:exported="false" />
         <activity
-            android:name="Pages.LoginPage"
+            android:name="pages.LoginPage"
             android:exported="false" />
         <activity
-            android:name="Modules.TextBox"
+            android:name="modules.TextBox"
             android:exported="false" />
         <activity
             android:name=".MainActivity"

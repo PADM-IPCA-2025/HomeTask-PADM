@@ -1,4 +1,4 @@
-package Pages
+package pages
 
 import android.util.Log
 import androidx.compose.animation.animateColor
@@ -20,7 +20,6 @@ import androidx.compose.ui.res.*
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import pt.ipca.hometask.R
-import pt.ipca.hometask.ui.theme.HomeTaskTheme
 
 @Composable
 fun SplashScreen(
@@ -195,10 +194,4 @@ fun ToggleButtonSwitch(
 @Preview(showBackground = true)
 @Composable
 fun SplashScreenPreview() {
-    HomeTaskTheme {
-        SplashScreen(
-            onNavigateToLogin = {},
-            onNavigateToRegister = {}
-        )
-    }
 }

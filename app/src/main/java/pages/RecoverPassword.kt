@@ -1,8 +1,8 @@
-package Pages
+package pages
 
-import Modules.CustomButton
-import Modules.CustomTextBox
-import Modules.TopBar
+import modules.CustomButton
+import modules.CustomTextBox
+import modules.TopBar
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.runtime.*

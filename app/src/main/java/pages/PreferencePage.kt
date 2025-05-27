@@ -1,4 +1,4 @@
-package Pages
+package pages
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -11,10 +11,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import Modules.TopBar
-import Modules.PreferenceItem
-import Modules.BottomMenuBar
-import Modules.LanguageSelector
+import modules.TopBar
+import modules.PreferenceItem
+import modules.BottomMenuBar
+import modules.LanguageSelector
 import pt.ipca.hometask.R
 
 @Composable

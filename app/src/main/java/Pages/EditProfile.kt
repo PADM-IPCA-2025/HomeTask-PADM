@@ -1,4 +1,4 @@
-package pt.ipca.hometask.Modules
+package Pages
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*

@@ -68,7 +68,7 @@ fun BottomMenuBar(
                 contentDescription = "Home",
                 modifier = Modifier
                     .size(22.dp)
-                    .clickable { onHomeClick() },
+                    .clickable { onProfileClick() },
                 contentScale = ContentScale.Fit
             )
         }

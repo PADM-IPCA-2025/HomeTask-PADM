@@ -7,6 +7,7 @@ import pages.NewPassword
 import pages.RecoverPassword
 import pages.RegisterScreen
 import pages.VerificationCode
+import pages.EditProfilePage
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -81,6 +82,11 @@ fun NavigationRouter() {
         }
         composable("homeMenu") {
             HomeMenu(
+                onProfile={navController.navigate("editProfile")}
+            )
+        }
+        composable("editProfile") {
+            EditProfilePage(
             )
         }
     }

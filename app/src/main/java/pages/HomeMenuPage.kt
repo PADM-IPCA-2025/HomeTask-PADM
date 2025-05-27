@@ -32,7 +32,9 @@ import androidx.compose.ui.unit.sp
 import pt.ipca.hometask.R
 
 @Composable
-fun HomeMenu() {
+fun HomeMenu(
+    onProfile: () -> Unit,
+) {
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -129,7 +131,7 @@ fun HomeMenu() {
         ) {
             BottomMenuBar(
                 onHomeClick = {},
-                onProfileClick = {}
+                onProfileClick = onProfile
             )
         }
     }
@@ -138,5 +140,4 @@ fun HomeMenu() {
 @Preview(showBackground = true)
 @Composable
 fun HomeMenuPreview (){
-    HomeMenu()
 }

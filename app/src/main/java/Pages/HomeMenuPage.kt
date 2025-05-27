@@ -44,9 +44,8 @@ fun HomeMenu() {
                 .padding(horizontal = 32.dp)
                 .padding(bottom = 70.dp)
         ) {
-            Spacer(modifier = Modifier.height(60.dp))  // Espaço para o notch
+            Spacer(modifier = Modifier.height(60.dp))
 
-            // Top Bar personalizada
             Row(
                 modifier = Modifier
                     .fillMaxWidth(),
@@ -72,7 +71,6 @@ fun HomeMenu() {
 
             Spacer(modifier = Modifier.height(60.dp))
 
-            // Seção Homes
             Text(
                 text = "Homes:",
                 fontSize = 20.sp,
@@ -82,10 +80,9 @@ fun HomeMenu() {
 
             Spacer(modifier = Modifier.height(22.dp))
 
-            // Lista scrollable de homes
             Column(
                 modifier = Modifier
-                    .height(240.dp)  // Altura fixa para a área scrollable
+                    .height(240.dp)
                     .verticalScroll(rememberScrollState())
             ) {
                 repeat(5) {
@@ -101,7 +98,7 @@ fun HomeMenu() {
 
             Spacer(modifier = Modifier.height(60.dp))
 
-            // Seção Tasks
+
             Text(
                 text = "My Tasks:",
                 fontSize = 20.sp,
@@ -111,10 +108,9 @@ fun HomeMenu() {
 
             Spacer(modifier = Modifier.height(22.dp))
 
-            // Lista scrollable de tasks
             Column(
                 modifier = Modifier
-                    .height(240.dp)  // Altura fixa para a área scrollable
+                    .height(240.dp)
                     .verticalScroll(rememberScrollState())
             ) {
                 repeat(5) {
@@ -130,15 +126,14 @@ fun HomeMenu() {
             }
         }
 
-        // BottomMenuBar dockada na parte inferior
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
         ) {
             BottomMenuBar(
-                onHomeClick = { /* Navegação para home */ },
-                onProfileClick = { /* Navegação para perfil */ }
+                onHomeClick = {},
+                onProfileClick = {}
             )
         }
     }

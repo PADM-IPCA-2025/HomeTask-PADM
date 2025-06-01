@@ -3,6 +3,7 @@ package presentation.ui.auth
 import modules.CustomTextBox
 import modules.CustomButton
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.ClickableText
@@ -22,19 +23,29 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import pt.ipca.hometask.R
+import pt.ipca.hometask.presentation.viewModel.auth.LoginViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
 fun LoginScreen(
-    onNavigateToRegister: () -> Unit,
-    onNavigateToRecover: () -> Unit,
-    onNavigateToMenu: () -> Unit
+    onNavigateToRegister: () -> Unit = {},
+    onNavigateToHome: () -> Unit = {},
+    viewModel: LoginViewModel = viewModel()
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    val uiState by viewModel.uiState
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    // 🚀 NAVEGAR QUANDO LOGIN COM SUCESSO
+    LaunchedEffect(uiState.user) {
+        if (uiState.user != null) {
+            onNavigateToHome()
+        }
+    }
 
-        // Conteúdo principal (campos + recovery)
+    Box(
+        modifier = Modifier.fillMaxSize()
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -44,6 +55,7 @@ fun LoginScreen(
         ) {
             Spacer(modifier = Modifier.height(56.dp))
 
+            // Logo (igual ao seu)
             Image(
                 painter = painterResource(id = R.drawable.hometask_slogan),
                 contentDescription = "Slogan da app",
@@ -55,8 +67,9 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(129.dp))
 
+            // Título
             Text(
-                text = "Login",
+                text = "Welcome Back",
                 style = TextStyle(
                     fontSize = 30.sp,
                     fontFamily = FontFamily(Font(R.font.inter_bold)),
@@ -68,13 +81,14 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(15.dp))
 
-
+            // 📧 CAMPO EMAIL
             CustomTextBox(
                 value = email,
                 onValueChange = { email = it },
                 placeholder = "Email"
             )
 
+            // 🔒 CAMPO PASSWORD
             CustomTextBox(
                 value = password,
                 onValueChange = { password = it },
@@ -82,24 +96,14 @@ fun LoginScreen(
                 isPassword = true
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Box(
-                modifier = Modifier
-                    .width(328.dp),
-                contentAlignment = Alignment.CenterEnd
-            ) {
+            // ⚠️ MOSTRAR ERRO SE HOUVER
+            if (uiState.error != null) {
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Recovery Password",
-                    modifier = Modifier.clickable { onNavigateToRecover() },
-                    style = TextStyle(
-                        fontSize = 14.sp,
-                        fontFamily = FontFamily(Font(R.font.inter_bold)),
-                        fontWeight = FontWeight(400),
-                        color = colorResource(id = R.color.secondary_blue),
-                        letterSpacing = 0.28.sp,
-                        textDecoration = TextDecoration.Underline
-                    )
+                    text = uiState.error!!,
+                    color = Color.Red,
+                    fontSize = 14.sp,
+                    modifier = Modifier.padding(horizontal = 16.dp)
                 )
             }
         }
@@ -111,16 +115,20 @@ fun LoginScreen(
                 .padding(start = 32.dp, end = 32.dp, bottom = 98.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // 🔘 BOTÃO LOGIN
             CustomButton(
-                text = "Login",
-                onClick = { onNavigateToMenu()}
+                text = if (uiState.isLoading) "Logging in..." else "Login",
+                onClick = {
+                    viewModel.login(email, password) // ← 🚀 CHAMA VIEWMODEL
+                }
             )
 
             Spacer(modifier = Modifier.height(15.dp))
 
+            // Link para Register
             ClickableText(
                 text = buildAnnotatedString {
-                    append("Not a member? ")
+                    append("Don't have an account? ")
                     withStyle(
                         style = SpanStyle(
                             fontFamily = FontFamily(Font(R.font.inter_bold)),
@@ -129,7 +137,7 @@ fun LoginScreen(
                             color = colorResource(id = R.color.secondary_blue),
                         )
                     ) {
-                        append("Register now")
+                        append("Register")
                     }
                 },
                 style = TextStyle(
@@ -140,11 +148,25 @@ fun LoginScreen(
                     letterSpacing = 0.7.sp
                 ),
                 onClick = { offset ->
-                    if (offset >= 13) {
+                    if (offset >= 23) { // "Don't have an account? " = 23 chars
                         onNavigateToRegister()
                     }
                 }
             )
+        }
+
+        // 🔄 LOADING OVERLAY
+        if (uiState.isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f)),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    color = colorResource(id = R.color.secondary_blue)
+                )
+            }
         }
     }
 }

@@ -1,4 +1,4 @@
-package pt.ipca.hometask.pages
+package presentation.ui.home
 
 import modules.TopBar
 import modules.CustomTextBox
@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,7 +55,7 @@ fun AddEditHouseScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.Start
             ) {
-                androidx.compose.material3.Text(
+                Text(
                     text = "Home Name",
                     color = colorResource(id = R.color.secondary_blue).copy(alpha = 0.7f),
                     fontSize = 14.sp,
@@ -75,7 +76,7 @@ fun AddEditHouseScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.Start
             ) {
-                androidx.compose.material3.Text(
+                Text(
                     text = "Address",
                     color = colorResource(id = R.color.secondary_blue).copy(alpha = 0.7f),
                     fontSize = 14.sp,
@@ -96,7 +97,7 @@ fun AddEditHouseScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.Start
             ) {
-                androidx.compose.material3.Text(
+                Text(
                     text = "Zip Code",
                     color = colorResource(id = R.color.secondary_blue).copy(alpha = 0.7f),
                     fontSize = 14.sp,

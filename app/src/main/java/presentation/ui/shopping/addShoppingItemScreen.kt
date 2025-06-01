@@ -1,10 +1,9 @@
-package pt.ipca.hometask.pages
+package presentation.ui.shopping
 
 import modules.TopBar
 import modules.CustomTextBox
 import modules.CustomButton
 import modules.BottomMenuBar
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions

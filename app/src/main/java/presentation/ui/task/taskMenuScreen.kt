@@ -1,9 +1,8 @@
-package pt.ipca.hometask.pages
+package presentation.ui.task
 
 import modules.TaskListItem
 import modules.CustomButton
 import modules.BottomMenuBar
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState

@@ -1,4 +1,4 @@
-package pt.ipca.hometask.data.remote.network
+package pt.ipca.hometask.network
 
 import pt.ipca.hometask.data.remote.api.HomeTaskApi
 import pt.ipca.hometask.data.remote.api.ShoppingApi

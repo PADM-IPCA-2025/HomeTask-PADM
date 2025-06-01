@@ -4,7 +4,7 @@ import pt.ipca.hometask.data.remote.api.UserAuthApi
 import pt.ipca.hometask.data.remote.model.*
 import pt.ipca.hometask.domain.model.User
 import pt.ipca.hometask.domain.repository.UserRepository
-import pt.ipca.hometask.data.remote.network.RetrofitClient
+import pt.ipca.hometask.network.RetrofitClient
 
 class UserRepositoryImpl : UserRepository {
     private val api: UserAuthApi = RetrofitClient.userAuthApi

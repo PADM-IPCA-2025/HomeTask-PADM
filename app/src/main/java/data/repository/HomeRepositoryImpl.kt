@@ -4,7 +4,7 @@ import pt.ipca.hometask.data.remote.api.HomeTaskApi
 import pt.ipca.hometask.data.remote.model.HomeDto
 import pt.ipca.hometask.domain.model.Home
 import pt.ipca.hometask.domain.repository.HomeRepository
-import pt.ipca.hometask.data.remote.network.RetrofitClient
+import pt.ipca.hometask.network.RetrofitClient
 
 class HomeRepositoryImpl : HomeRepository {
     private val api: HomeTaskApi = RetrofitClient.homeTaskApi

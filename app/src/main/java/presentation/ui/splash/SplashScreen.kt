@@ -1,4 +1,4 @@
-package pages
+package presentation.ui.splash
 
 import android.util.Log
 import androidx.compose.animation.animateColor

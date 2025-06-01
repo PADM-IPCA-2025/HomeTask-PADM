@@ -1,4 +1,4 @@
-package pt.ipca.hometask.pages
+package presentation.ui.shopping
 
 import modules.TopBar
 import modules.ShoppingItem

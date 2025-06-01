@@ -1,8 +1,7 @@
-package pages
+package presentation.ui.auth
 
 import modules.CustomButton
 import modules.TopBar
-import android.view.KeyEvent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.text.KeyboardOptions
@@ -107,7 +106,7 @@ fun VerificationCode(
                             .height(60.dp)
                             .focusRequester(currentFocusRequester)
                             .onKeyEvent { event ->
-                                if (event.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DEL) {
+                                if (event.nativeKeyEvent.keyCode == KEYCODE_DEL) {
                                     if (code[index].isEmpty() && index > 0) {
                                         previousFocusRequester?.requestFocus()
                                         code[index - 1] = ""

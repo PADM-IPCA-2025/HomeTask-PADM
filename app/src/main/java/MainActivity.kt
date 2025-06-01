@@ -1,13 +1,13 @@
 package pt.ipca.hometask
 
-import pages.HomeMenu
-import pages.SplashScreen
-import pages.LoginScreen
-import pages.NewPassword
-import pages.RecoverPassword
-import pages.RegisterScreen
-import pages.VerificationCode
-import pages.EditProfilePage
+import presentation.ui.main.HomeMenu
+import presentation.ui.splash.SplashScreen
+import presentation.ui.auth.LoginScreen
+import presentation.ui.auth.NewPassword
+import presentation.ui.auth.RecoverPassword
+import presentation.ui.auth.RegisterScreen
+import presentation.ui.auth.VerificationCode
+import presentation.ui.profile.EditProfilePage
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity

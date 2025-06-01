@@ -1,4 +1,4 @@
-package pages
+package presentation.ui.main
 
 import modules.BottomMenuBar
 import modules.TaskListItem

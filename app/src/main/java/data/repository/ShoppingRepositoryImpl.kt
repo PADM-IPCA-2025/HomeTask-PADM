@@ -4,7 +4,7 @@ import pt.ipca.hometask.data.remote.api.ShoppingApi
 import pt.ipca.hometask.data.remote.model.*
 import pt.ipca.hometask.domain.model.*
 import pt.ipca.hometask.domain.repository.ShoppingRepository
-import pt.ipca.hometask.data.remote.network.RetrofitClient
+import pt.ipca.hometask.network.RetrofitClient
 
 class ShoppingRepositoryImpl : ShoppingRepository {
     private val api: ShoppingApi = RetrofitClient.shoppingApi

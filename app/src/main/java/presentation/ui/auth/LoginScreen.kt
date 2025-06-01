@@ -23,13 +23,14 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import pt.ipca.hometask.R
-import pt.ipca.hometask.presentation.viewModel.auth.LoginViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
+import presentation.viewmodel.auth.LoginViewModel
 
 @Composable
 fun LoginScreen(
     onNavigateToRegister: () -> Unit = {},
-    onNavigateToHome: () -> Unit = {},
+    onNavigateToMenu: () -> Unit,
+    onNavigateToRecover: ()-> Unit={},
     viewModel: LoginViewModel = viewModel()
 ) {
     var email by remember { mutableStateOf("") }
@@ -39,7 +40,7 @@ fun LoginScreen(
     // 🚀 NAVEGAR QUANDO LOGIN COM SUCESSO
     LaunchedEffect(uiState.user) {
         if (uiState.user != null) {
-            onNavigateToHome()
+            onNavigateToMenu()
         }
     }
 
@@ -95,6 +96,26 @@ fun LoginScreen(
                 placeholder = "Password",
                 isPassword = true
             )
+
+            Box(
+                modifier = Modifier
+                    .width(328.dp),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                Text(
+                    text = "Recovery Password",
+                    modifier = Modifier.clickable { onNavigateToRecover() },
+                    style = TextStyle(
+                        fontSize = 14.sp,
+                        fontFamily = FontFamily(Font(R.font.inter_bold)),
+                        fontWeight = FontWeight(400),
+                        color = colorResource(id = R.color.secondary_blue),
+                        letterSpacing = 0.28.sp,
+                        textDecoration = TextDecoration.Underline
+                    )
+                )
+            }
+
 
             // ⚠️ MOSTRAR ERRO SE HOUVER
             if (uiState.error != null) {

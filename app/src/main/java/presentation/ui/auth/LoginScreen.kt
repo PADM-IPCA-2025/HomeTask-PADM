@@ -56,7 +56,6 @@ fun LoginScreen(
         ) {
             Spacer(modifier = Modifier.height(56.dp))
 
-            // Logo (igual ao seu)
             Image(
                 painter = painterResource(id = R.drawable.hometask_slogan),
                 contentDescription = "Slogan da app",

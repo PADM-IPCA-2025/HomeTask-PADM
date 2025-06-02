@@ -7,11 +7,12 @@ data class UserDto(
     @SerializedName("name") val name: String,
     @SerializedName("email") val email: String,
     @SerializedName("password") val password: String? = null,
-    @SerializedName("roles") val roles: String,
+    @SerializedName("roles") val roles: String? = null, // ← Para enviar (REQUEST)
+    @SerializedName("role") val role: String? = null,   // ← Para receber (RESPONSE)
     @SerializedName("profilepicture") val profilePicture: String? = null,
     @SerializedName("token") val token: String? = null,
-    @SerializedName("verificationCode") val verificationCode: String? = null,
-    @SerializedName("codeExpiry") val codeExpiry: String? = null
+    @SerializedName("verificationcode") val verificationCode: String? = null,
+    @SerializedName("codeexpiry") val codeExpiry: String? = null
 )
 
 data class LoginRequest(

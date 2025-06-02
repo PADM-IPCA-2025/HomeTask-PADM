@@ -15,20 +15,26 @@ class UserRepositoryImpl : UserRepository {
                 name = user.name,
                 email = user.email,
                 password = password,
-                roles = user.roles,
+                roles = user.roles, // ← Envia "roles" para a API
                 profilePicture = user.profilePicture
             )
+
             val response = api.register(userDto)
             if (response.isSuccessful && response.body() != null) {
-                val dto = response.body()!!
-                Result.success(User(
-                    id = dto.id,
-                    name = dto.name,
-                    email = dto.email,
-                    roles = dto.roles,
-                    profilePicture = dto.profilePicture,
-                    token = dto.token
-                ))
+                val apiResponse = response.body()!!
+                if (apiResponse.success) {
+                    val dto = apiResponse.data
+                    Result.success(User(
+                        id = dto.id,
+                        name = dto.name,
+                        email = dto.email,
+                        roles = dto.role ?: dto.roles ?: "",
+                        profilePicture = dto.profilePicture,
+                        token = dto.token
+                    ))
+                } else {
+                    Result.failure(Exception(apiResponse.message))
+                }
             } else {
                 Result.failure(Exception("Registration failed: ${response.message()}"))
             }
@@ -41,15 +47,21 @@ class UserRepositoryImpl : UserRepository {
         return try {
             val response = api.login(LoginRequest(email, password))
             if (response.isSuccessful && response.body() != null) {
-                val dto = response.body()!!
-                Result.success(User(
-                    id = dto.id,
-                    name = dto.name,
-                    email = dto.email,
-                    roles = dto.roles,
-                    profilePicture = dto.profilePicture,
-                    token = dto.token
-                ))
+                val apiResponse = response.body()!!
+
+                if (apiResponse.success) {
+                    val dto = apiResponse.data
+                    Result.success(User(
+                        id = dto.id,
+                        name = dto.name,
+                        email = dto.email,
+                        roles = dto.role ?: dto.roles ?: "",
+                        profilePicture = dto.profilePicture,
+                        token = dto.token
+                    ))
+                } else {
+                    Result.failure(Exception(apiResponse.message))
+                }
             } else {
                 Result.failure(Exception("Login failed: ${response.message()}"))
             }
@@ -119,7 +131,7 @@ class UserRepositoryImpl : UserRepository {
                         id = dto.id,
                         name = dto.name,
                         email = dto.email,
-                        roles = dto.roles,
+                        roles = dto.role ?: dto.roles ?: "",
                         profilePicture = dto.profilePicture,
                         token = dto.token
                     )
@@ -149,7 +161,7 @@ class UserRepositoryImpl : UserRepository {
                     id = dto.id,
                     name = dto.name,
                     email = dto.email,
-                    roles = dto.roles,
+                    roles = dto.role ?: dto.roles ?: "",
                     profilePicture = dto.profilePicture,
                     token = dto.token
                 ))

@@ -2,13 +2,23 @@ package presentation.ui.auth
 
 import modules.CustomButton
 import modules.CustomTextBox
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.ClickableText
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.colorResource
@@ -20,15 +30,39 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import pt.ipca.hometask.R
+import presentation.viewModel.auth.RegisterViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterScreen(
-    onNavigateToLogin: () -> Unit
+    onNavigateToLogin: () -> Unit,
+    viewModel: RegisterViewModel = viewModel()
 ) {
-    var username by remember { mutableStateOf("") }
+    var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var selectedRole by remember { mutableStateOf("Resident") }
+    var profileImageUri by remember { mutableStateOf<String?>(null) }
+
+    val uiState by viewModel.uiState
+
+    // Launcher para selecionar imagem
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let {
+            profileImageUri = it.toString()
+        }
+    }
+
+    // Navegar quando registro for bem-sucedido
+    LaunchedEffect(uiState.isRegistrationSuccessful) {
+        if (uiState.isRegistrationSuccessful) {
+            onNavigateToLogin()
+        }
+    }
 
     Box(
         modifier = Modifier.fillMaxSize()
@@ -51,7 +85,7 @@ fun RegisterScreen(
                     .height(48.dp)
             )
 
-            Spacer(modifier = Modifier.height(129.dp))
+            Spacer(modifier = Modifier.height(80.dp))
 
             Text(
                 text = "Create Account",
@@ -64,12 +98,50 @@ fun RegisterScreen(
                 )
             )
 
-            Spacer(modifier = Modifier.height(15.dp))
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Foto de perfil
+            Box(
+                modifier = Modifier
+                    .size(80.dp)
+                    .clip(CircleShape)
+                    .border(2.dp, colorResource(id = R.color.secondary_blue), CircleShape)
+                    .clickable { imagePickerLauncher.launch("image/*") }
+                    .background(Color.Gray.copy(alpha = 0.1f)),
+                contentAlignment = Alignment.Center
+            ) {
+                if (profileImageUri != null) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = "Photo Selected",
+                            tint = Color.Green,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Text(
+                            text = "Selected",
+                            fontSize = 10.sp,
+                            color = Color.Green
+                        )
+                    }
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.CameraAlt,
+                        contentDescription = "Add Photo",
+                        tint = colorResource(id = R.color.secondary_blue),
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
 
             CustomTextBox(
-                value = username,
-                onValueChange = { username = it },
-                placeholder = "Username"
+                value = name,
+                onValueChange = { name = it },
+                placeholder = "Full Name"
             )
 
             CustomTextBox(
@@ -78,12 +150,38 @@ fun RegisterScreen(
                 placeholder = "Email"
             )
 
+            // Dropdown Role fixo
+            OutlinedTextField(
+                value = selectedRole,
+                onValueChange = { },
+                label = { Text("Role") },
+                readOnly = true,
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = colorResource(id = R.color.secondary_blue),
+                    unfocusedBorderColor = Color.Gray
+                )
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
             CustomTextBox(
                 value = password,
                 onValueChange = { password = it },
                 placeholder = "Password",
                 isPassword = true
             )
+
+            // Mostrar erro se houver
+            if (uiState.error != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = uiState.error!!,
+                    color = Color.Red,
+                    fontSize = 14.sp,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+            }
         }
 
         Column(
@@ -94,8 +192,16 @@ fun RegisterScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             CustomButton(
-                text = "Create Account",
-                onClick = { /* ação de criação de conta */ }
+                text = if (uiState.isLoading) "Creating Account..." else "Create Account",
+                onClick = {
+                    viewModel.register(
+                        name = name,
+                        email = email,
+                        password = password,
+                        roles = selectedRole,
+                        profilePicture = profileImageUri
+                    )
+                }
             )
 
             Spacer(modifier = Modifier.height(15.dp))
@@ -127,6 +233,20 @@ fun RegisterScreen(
                     }
                 }
             )
+        }
+
+        // Loading overlay
+        if (uiState.isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f)),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    color = colorResource(id = R.color.secondary_blue)
+                )
+            }
         }
     }
 }

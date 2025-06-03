@@ -32,12 +32,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import pt.ipca.hometask.R
-import presentation.viewModel.auth.RegisterViewModel
+import pt.ipca.hometask.presentation.viewModel.auth.RegisterViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterScreen(
-    onNavigateToLogin: () -> Unit,
+    onNavigateToVerification: (String) -> Unit,
     viewModel: RegisterViewModel = viewModel()
 ) {
     var name by remember { mutableStateOf("") }
@@ -60,7 +60,7 @@ fun RegisterScreen(
     // Navegar quando registro for bem-sucedido
     LaunchedEffect(uiState.isRegistrationSuccessful) {
         if (uiState.isRegistrationSuccessful) {
-            onNavigateToLogin()
+            onNavigateToVerification(email) // ← Mudança: passa o email
         }
     }
 
@@ -229,7 +229,7 @@ fun RegisterScreen(
                 ),
                 onClick = { offset ->
                     if (offset >= 26) {
-                        onNavigateToLogin()
+                        onNavigateToVerification("") // ← Placeholder, vai para login normalmente
                     }
                 }
             )

@@ -1,4 +1,4 @@
-package presentation.viewmodel.auth
+package pt.ipca.hometask.presentation.viewModel.auth
 
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel

@@ -3,18 +3,35 @@ package presentation.ui.auth
 import modules.CustomButton
 import modules.CustomTextBox
 import modules.TopBar
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import pt.ipca.hometask.R
+import pt.ipca.hometask.presentation.viewModel.auth.RecoverPasswordViewModel
 
 @Composable
 fun RecoverPassword(
     onBackClick: () -> Unit,
-    onContinueClick: () -> Unit
+    onContinueClick: (String) -> Unit,
+    viewModel: RecoverPasswordViewModel = viewModel()
 ) {
-    var input by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    val uiState by viewModel.uiState
+
+    // Navegar quando código for enviado
+    LaunchedEffect(uiState.isCodeSent) {
+        if (uiState.isCodeSent) {
+            onContinueClick(email)
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
 
@@ -36,10 +53,22 @@ fun RecoverPassword(
             Spacer(modifier = Modifier.height(345.dp))
 
             CustomTextBox(
-                value = input,
-                onValueChange = { input = it },
+                value = email,
+                onValueChange = { email = it },
                 placeholder = "Email or Phone Number"
             )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Mostrar erro se houver
+            if (uiState.error != null) {
+                Text(
+                    text = uiState.error!!,
+                    color = Color.Red,
+                    fontSize = 14.sp,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+            }
         }
 
         Column(
@@ -50,11 +79,26 @@ fun RecoverPassword(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             CustomButton(
-                text = "Continue",
-                onClick = onContinueClick
+                text = if (uiState.isLoading) "Sending..." else "Continue",
+                onClick = {
+                    viewModel.sendRecoveryCode(email)
+                }
             )
             Spacer(modifier = Modifier.height(32.dp))
+        }
 
+        // Loading overlay
+        if (uiState.isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f)),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    color = colorResource(id = R.color.secondary_blue)
+                )
+            }
         }
     }
 }

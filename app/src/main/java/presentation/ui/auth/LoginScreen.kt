@@ -24,7 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import pt.ipca.hometask.R
 import androidx.lifecycle.viewmodel.compose.viewModel
-import presentation.viewmodel.auth.LoginViewModel
+import pt.ipca.hometask.presentation.viewModel.auth.LoginViewModel
 
 @Composable
 fun LoginScreen(

@@ -26,14 +26,14 @@ import androidx.compose.ui.unit.*
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.delay
 import pt.ipca.hometask.R
-import pt.ipca.hometask.presentation.viewModel.auth.VerificationCodeViewModel
+import pt.ipca.hometask.presentation.viewModel.auth.VerifyCodeForgotPasswordViewModel
 
 @Composable
-fun VerificationCode(
+fun VerificationCodeForgotPassword(
     email: String,
     onBackClick: () -> Unit,
     onVerificationSuccess: () -> Unit,
-    viewModel: VerificationCodeViewModel = viewModel()
+    viewModel: VerifyCodeForgotPasswordViewModel = viewModel()
 ) {
     var timer by remember { mutableStateOf(30) }
     val code = remember { mutableStateListOf("", "", "", "", "", "") }
@@ -76,7 +76,7 @@ fun VerificationCode(
             Spacer(modifier = Modifier.height(40.dp))
 
             Text(
-                text = "Enter the code from the SMS we sent to\n$email",
+                text = "Enter the recovery code we sent to\n$email",
                 fontSize = 16.sp,
                 color = Color(0x990A1B1F),
                 textAlign = TextAlign.Center,
@@ -180,7 +180,7 @@ fun VerificationCode(
                 text = if (uiState.isLoading) "Verifying..." else "Submit",
                 onClick = {
                     val fullCode = code.joinToString("")
-                    viewModel.verifyCode(email, fullCode)
+                    viewModel.verifyForgotPasswordCode(email, fullCode)
                 }
             )
 

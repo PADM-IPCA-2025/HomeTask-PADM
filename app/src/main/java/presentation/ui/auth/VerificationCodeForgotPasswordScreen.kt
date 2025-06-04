@@ -1,4 +1,4 @@
-package presentation.ui.auth
+package pt.ipca.hometask.presentation.ui.auth
 
 import modules.CustomButton
 import modules.TopBar

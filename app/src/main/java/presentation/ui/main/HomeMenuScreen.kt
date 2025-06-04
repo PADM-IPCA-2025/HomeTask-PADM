@@ -34,6 +34,7 @@ import pt.ipca.hometask.R
 @Composable
 fun HomeMenu(
     onProfile: () -> Unit,
+    onShoppingLists:() ->Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         Column(

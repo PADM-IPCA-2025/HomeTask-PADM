@@ -1,17 +1,35 @@
 package pt.ipca.hometask.presentation.viewModel.auth
 
+import android.content.Context
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
+import pt.ipca.hometask.data.local.AuthPreferences
 import pt.ipca.hometask.data.repository.UserRepositoryImpl
 import pt.ipca.hometask.domain.model.User
 
-class LoginViewModel : ViewModel() {
+class LoginViewModel(
+    private val context: Context
+) : ViewModel() {
     private val userRepository = UserRepositoryImpl()
+    private val authPreferences = AuthPreferences(context)
 
     var uiState = mutableStateOf(LoginUiState())
         private set
+
+    init {
+        checkExistingLogin()
+    }
+
+    private fun checkExistingLogin() {
+        if (authPreferences.isLoggedIn()) {
+            val user = authPreferences.getUser()
+            if (user != null) {
+                uiState.value = uiState.value.copy(user = user)
+            }
+        }
+    }
 
     fun login(email: String, password: String) {
         // Validação básica
@@ -30,6 +48,9 @@ class LoginViewModel : ViewModel() {
         viewModelScope.launch {
             userRepository.login(email, password)
                 .onSuccess { user ->
+                    // 🔥 SALVAR DADOS DO USUÁRIO (sem token)
+                    authPreferences.saveUserData(user)
+
                     uiState.value = uiState.value.copy(
                         isLoading = false,
                         user = user,
@@ -43,6 +64,15 @@ class LoginViewModel : ViewModel() {
                     )
                 }
         }
+    }
+
+    fun logout() {
+        authPreferences.logout()
+        uiState.value = LoginUiState() // Reset do estado
+    }
+
+    fun getCurrentUser(): User? {
+        return authPreferences.getUser()
     }
 
     fun forgotPassword(email: String) {

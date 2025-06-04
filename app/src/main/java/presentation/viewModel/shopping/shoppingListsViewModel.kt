@@ -1,0 +1,510 @@
+package pt.ipca.hometask.presentation.viewModel.shopping
+
+import android.content.Context
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import pt.ipca.hometask.data.repository.AuthRepository
+import pt.ipca.hometask.domain.model.ShoppingList
+import pt.ipca.hometask.domain.model.ShoppingItem
+import pt.ipca.hometask.domain.repository.ShoppingRepository
+
+data class ShoppingListsUiState(
+    val isLoading: Boolean = false,
+    val allShoppingLists: List<ShoppingList> = emptyList(),
+    val inProgressLists: List<ShoppingListWithTotal> = emptyList(),
+    val historyLists: List<ShoppingListWithTotal> = emptyList(),
+    val selectedTab: ShoppingListTab = ShoppingListTab.IN_PROGRESS,
+    val errorMessage: String? = null,
+    val isListCreated: Boolean = false,
+    val isUserLoggedIn: Boolean = false,
+    val currentUserId: Int? = null,
+    val currentUserName: String? = null
+)
+
+data class ShoppingListWithTotal(
+    val shoppingList: ShoppingList,
+    val totalPrice: Float = 0f,
+    val totalItems: Int = 0,
+    val completedItems: Int = 0
+)
+
+enum class ShoppingListTab {
+    IN_PROGRESS, HISTORY
+}
+
+class ShoppingListsViewModel(
+    private val repository: ShoppingRepository,
+    private val context: Context
+) : ViewModel() {
+
+    private val authRepository = AuthRepository(context)
+    private val _uiState = MutableStateFlow(ShoppingListsUiState())
+    val uiState: StateFlow<ShoppingListsUiState> = _uiState.asStateFlow()
+
+    // Cache para evitar múltiplas chamadas da API para os mesmos dados
+    private val itemsCache = mutableMapOf<Int, List<ShoppingItem>>()
+
+    init {
+        checkUserAuthentication()
+        if (authRepository.isLoggedIn()) {
+            loadShoppingListsForCurrentUser()
+        }
+    }
+
+    private fun checkUserAuthentication() {
+        val isLoggedIn = authRepository.isLoggedIn()
+        _uiState.value = _uiState.value.copy(
+            isUserLoggedIn = isLoggedIn,
+            currentUserId = authRepository.getUserId(),
+            currentUserName = authRepository.getUserName()
+        )
+
+        if (!isLoggedIn) {
+            _uiState.value = _uiState.value.copy(
+                errorMessage = "Usuário não está logado"
+            )
+        }
+    }
+
+    fun loadShoppingListsForCurrentUser() {
+        if (!authRepository.isLoggedIn()) {
+            _uiState.value = _uiState.value.copy(
+                errorMessage = "Usuário não está logado",
+                isUserLoggedIn = false
+            )
+            return
+        }
+
+        val userId = authRepository.getUserId()
+        if (userId == null) {
+            _uiState.value = _uiState.value.copy(
+                errorMessage = "ID do usuário não encontrado"
+            )
+            return
+        }
+
+        loadShoppingListsByHome(userId)
+    }
+
+    fun loadShoppingListsByHome(homeId: Int) {
+        // Verificar se o homeId corresponde ao usuário logado
+        val currentUserId = authRepository.getUserId()
+        if (currentUserId != homeId && !authRepository.isAdmin()) {
+            _uiState.value = _uiState.value.copy(
+                errorMessage = "Você não tem permissão para acessar essas listas"
+            )
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+
+            try {
+                val result = repository.getShoppingListsByHome(homeId)
+                result.onSuccess { lists ->
+                    _uiState.value = _uiState.value.copy(
+                        allShoppingLists = lists,
+                        isLoading = false
+                    )
+                    // Carregar os totais para cada lista
+                    loadListTotals(lists)
+                }.onFailure { exception ->
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        errorMessage = exception.message
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = e.message
+                )
+            }
+        }
+    }
+
+    private suspend fun loadListTotals(lists: List<ShoppingList>) {
+        val listsWithTotals = mutableListOf<ShoppingListWithTotal>()
+
+        lists.forEach { shoppingList ->
+            val listId = shoppingList.id ?: return@forEach
+
+            // Verificar se a lista pertence ao usuário atual
+            val currentUserId = authRepository.getUserId()
+            if (currentUserId != null && shoppingList.homeId == currentUserId) {
+                val items = getItemsForList(listId)
+                itemsCache[listId] = items
+
+                val totalPrice = items.sumOf { (it.quantity * it.price).toDouble() }.toFloat()
+                val totalItems = items.size
+                val completedItems = items.count { it.state == "comprado" }
+
+                listsWithTotals.add(
+                    ShoppingListWithTotal(
+                        shoppingList = shoppingList,
+                        totalPrice = totalPrice,
+                        totalItems = totalItems,
+                        completedItems = completedItems
+                    )
+                )
+            }
+        }
+
+        val (inProgress, history) = separateListsByStatus(listsWithTotals)
+        _uiState.value = _uiState.value.copy(
+            inProgressLists = inProgress,
+            historyLists = history
+        )
+    }
+
+    // Método temporário com dados mockados - substituir quando tiver endpoint real
+    private fun getItemsForList(listId: Int): List<ShoppingItem> {
+        val userId = authRepository.getUserId() ?: return emptyList()
+
+        return when (listId) {
+            1 -> listOf(
+                ShoppingItem(1, "Leite", 2f, "pendente", 1.50f, listId, 1),
+                ShoppingItem(2, "Pão", 1f, "comprado", 0.80f, listId, 2),
+                ShoppingItem(3, "Ovos", 12f, "pendente", 2.30f, listId, 1)
+            )
+            2 -> listOf(
+                ShoppingItem(4, "Arroz", 1f, "comprado", 3.20f, listId, 2),
+                ShoppingItem(5, "Feijão", 1f, "comprado", 2.50f, listId, 2)
+            )
+            3 -> listOf(
+                ShoppingItem(6, "Maçãs", 2f, "comprado", 1.80f, listId, 3),
+                ShoppingItem(7, "Bananas", 1f, "comprado", 1.20f, listId, 3)
+            )
+            else -> emptyList()
+        }
+    }
+
+    private fun separateListsByStatus(lists: List<ShoppingListWithTotal>): Pair<List<ShoppingListWithTotal>, List<ShoppingListWithTotal>> {
+        // Listas com endDate preenchida são "History"
+        // Listas sem endDate são "In Progress"
+        val inProgress = lists.filter { it.shoppingList.endDate.isNullOrEmpty() }
+        val history = lists.filter { !it.shoppingList.endDate.isNullOrEmpty() }
+        return Pair(inProgress, history)
+    }
+
+    fun selectTab(tab: ShoppingListTab) {
+        _uiState.value = _uiState.value.copy(selectedTab = tab)
+    }
+
+    fun getCurrentLists(): List<ShoppingListWithTotal> {
+        return when (_uiState.value.selectedTab) {
+            ShoppingListTab.IN_PROGRESS -> _uiState.value.inProgressLists
+            ShoppingListTab.HISTORY -> _uiState.value.historyLists
+        }
+    }
+
+    fun createShoppingList(title: String) {
+        if (!authRepository.isLoggedIn()) {
+            _uiState.value = _uiState.value.copy(
+                errorMessage = "Usuário não está logado"
+            )
+            return
+        }
+
+        val userId = authRepository.getUserId()
+        if (userId == null) {
+            _uiState.value = _uiState.value.copy(
+                errorMessage = "ID do usuário não encontrado"
+            )
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+
+            try {
+                val newList = ShoppingList(
+                    title = title.trim(),
+                    homeId = userId // Usar o ID do usuário logado como homeId
+                )
+
+                val result = repository.createShoppingList(newList)
+                result.onSuccess { createdList ->
+                    // Adicionar à lista local
+                    val updatedAllLists = _uiState.value.allShoppingLists + createdList
+                    _uiState.value = _uiState.value.copy(
+                        allShoppingLists = updatedAllLists,
+                        isLoading = false,
+                        isListCreated = true
+                    )
+
+                    // Recarregar totais
+                    loadListTotals(updatedAllLists)
+                }.onFailure { exception ->
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        errorMessage = exception.message
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = e.message
+                )
+            }
+        }
+    }
+
+    fun updateShoppingList(listId: Int, title: String) {
+        if (!authRepository.isLoggedIn()) {
+            _uiState.value = _uiState.value.copy(
+                errorMessage = "Usuário não está logado"
+            )
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                val listToUpdate = _uiState.value.allShoppingLists.find { it.id == listId }
+
+                listToUpdate?.let { currentList ->
+                    // Verificar se a lista pertence ao usuário atual
+                    val currentUserId = authRepository.getUserId()
+                    if (currentUserId != currentList.homeId && !authRepository.isAdmin()) {
+                        _uiState.value = _uiState.value.copy(
+                            errorMessage = "Você não tem permissão para editar esta lista"
+                        )
+                        return@let
+                    }
+
+                    val updatedList = currentList.copy(title = title.trim())
+
+                    val result = repository.updateShoppingList(listId, updatedList)
+                    result.onSuccess { updated ->
+                        val updatedAllLists = _uiState.value.allShoppingLists.map {
+                            if (it.id == listId) updated else it
+                        }
+                        _uiState.value = _uiState.value.copy(
+                            allShoppingLists = updatedAllLists
+                        )
+
+                        // Recarregar totais
+                        loadListTotals(updatedAllLists)
+                    }.onFailure { exception ->
+                        _uiState.value = _uiState.value.copy(
+                            errorMessage = exception.message
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    errorMessage = e.message
+                )
+            }
+        }
+    }
+
+    fun deleteShoppingList(listId: Int) {
+        if (!authRepository.isLoggedIn()) {
+            _uiState.value = _uiState.value.copy(
+                errorMessage = "Usuário não está logado"
+            )
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                val listToDelete = _uiState.value.allShoppingLists.find { it.id == listId }
+
+                listToDelete?.let { currentList ->
+                    // Verificar se a lista pertence ao usuário atual
+                    val currentUserId = authRepository.getUserId()
+                    if (currentUserId != currentList.homeId && !authRepository.isAdmin()) {
+                        _uiState.value = _uiState.value.copy(
+                            errorMessage = "Você não tem permissão para deletar esta lista"
+                        )
+                        return@let
+                    }
+                }
+
+                val result = repository.deleteShoppingList(listId)
+                result.onSuccess {
+                    val updatedAllLists = _uiState.value.allShoppingLists.filter { it.id != listId }
+                    _uiState.value = _uiState.value.copy(
+                        allShoppingLists = updatedAllLists
+                    )
+
+                    // Remover do cache
+                    itemsCache.remove(listId)
+
+                    // Recarregar totais
+                    loadListTotals(updatedAllLists)
+                }.onFailure { exception ->
+                    _uiState.value = _uiState.value.copy(
+                        errorMessage = exception.message
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    errorMessage = e.message
+                )
+            }
+        }
+    }
+
+    fun markListAsCompleted(listId: Int) {
+        if (!authRepository.isLoggedIn()) {
+            _uiState.value = _uiState.value.copy(
+                errorMessage = "Usuário não está logado"
+            )
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                val listToUpdate = _uiState.value.allShoppingLists.find { it.id == listId }
+
+                listToUpdate?.let { currentList ->
+                    // Verificar se a lista pertence ao usuário atual
+                    val currentUserId = authRepository.getUserId()
+                    if (currentUserId != currentList.homeId && !authRepository.isAdmin()) {
+                        _uiState.value = _uiState.value.copy(
+                            errorMessage = "Você não tem permissão para marcar esta lista como concluída"
+                        )
+                        return@let
+                    }
+
+                    val currentDate = java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault()).format(java.util.Date())
+                    val updatedList = currentList.copy(endDate = currentDate)
+
+                    val result = repository.updateShoppingList(listId, updatedList)
+                    result.onSuccess { updated ->
+                        val updatedAllLists = _uiState.value.allShoppingLists.map {
+                            if (it.id == listId) updated else it
+                        }
+                        _uiState.value = _uiState.value.copy(
+                            allShoppingLists = updatedAllLists
+                        )
+
+                        // Recarregar totais
+                        loadListTotals(updatedAllLists)
+                    }.onFailure { exception ->
+                        _uiState.value = _uiState.value.copy(
+                            errorMessage = exception.message
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    errorMessage = e.message
+                )
+            }
+        }
+    }
+
+    fun refreshList(listId: Int) {
+        if (!authRepository.isLoggedIn()) {
+            _uiState.value = _uiState.value.copy(
+                errorMessage = "Usuário não está logado"
+            )
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                // Verificar se a lista pertence ao usuário
+                val listToRefresh = _uiState.value.allShoppingLists.find { it.id == listId }
+                val currentUserId = authRepository.getUserId()
+
+                if (listToRefresh != null && (currentUserId == listToRefresh.homeId || authRepository.isAdmin())) {
+                    // Recarregar itens desta lista específica
+                    val items = getItemsForList(listId)
+                    itemsCache[listId] = items
+
+                    // Recarregar totais
+                    loadListTotals(_uiState.value.allShoppingLists)
+                } else {
+                    _uiState.value = _uiState.value.copy(
+                        errorMessage = "Você não tem permissão para atualizar esta lista"
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    errorMessage = e.message
+                )
+            }
+        }
+    }
+
+    fun getListTotal(listId: Int): Float {
+        // Verificar permissão antes de retornar dados
+        val list = _uiState.value.allShoppingLists.find { it.id == listId }
+        val currentUserId = authRepository.getUserId()
+
+        if (list != null && (currentUserId == list.homeId || authRepository.isAdmin())) {
+            val items = itemsCache[listId] ?: return 0f
+            return items.sumOf { (it.quantity * it.price).toDouble() }.toFloat()
+        }
+        return 0f
+    }
+
+    fun getListProgress(listId: Int): Pair<Int, Int> {
+        // Verificar permissão antes de retornar dados
+        val list = _uiState.value.allShoppingLists.find { it.id == listId }
+        val currentUserId = authRepository.getUserId()
+
+        if (list != null && (currentUserId == list.homeId || authRepository.isAdmin())) {
+            val items = itemsCache[listId] ?: return Pair(0, 0)
+            val completed = items.count { it.state == "comprado" }
+            val total = items.size
+            return Pair(completed, total)
+        }
+        return Pair(0, 0)
+    }
+
+    fun getCurrentUserInfo(): Triple<Int?, String?, String?> {
+        return if (authRepository.isLoggedIn()) {
+            Triple(
+                authRepository.getUserId(),
+                authRepository.getUserName(),
+                authRepository.getUserEmail()
+            )
+        } else {
+            Triple(null, null, null)
+        }
+    }
+
+    fun clearError() {
+        _uiState.value = _uiState.value.copy(errorMessage = null)
+    }
+
+    fun resetCreatedState() {
+        _uiState.value = _uiState.value.copy(isListCreated = false)
+    }
+
+    fun logout() {
+        authRepository.logout()
+        _uiState.value = ShoppingListsUiState() // Reset completo do estado
+        itemsCache.clear()
+    }
+
+    fun retryAfterLogin() {
+        checkUserAuthentication()
+        if (authRepository.isLoggedIn()) {
+            loadShoppingListsForCurrentUser()
+        }
+    }
+
+    // Método para usar quando você tiver o endpoint real para buscar itens por lista
+    private suspend fun loadItemsForList(listId: Int): List<ShoppingItem> {
+        return try {
+            // Quando você implementar o endpoint:
+            // val result = repository.getItemsByShoppingList(listId)
+            // result.getOrElse { emptyList() }
+
+            // Por enquanto, usar dados mockados
+            getItemsForList(listId)
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+}

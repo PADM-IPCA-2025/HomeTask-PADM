@@ -31,6 +31,10 @@ import presentation.ui.splash.SplashScreen
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Log para debug
+        Log.d("MainActivity", "Aplicação iniciada")
+
         enableEdgeToEdge()
         setContent {
             HomeTaskTheme {
@@ -47,27 +51,45 @@ fun NavigationRouter() {
     val navController = rememberNavController()
 
     // Verificar se usuário está logado no início
-    val startDestination = if (authRepository.isLoggedIn()) "homeMenu" else "splash"
+    val isLoggedIn = authRepository.isLoggedIn()
+    val startDestination = if (isLoggedIn) {
+        Log.d("NavigationRouter", "Usuário logado, iniciando no homeMenu")
+        "homeMenu"
+    } else {
+        Log.d("NavigationRouter", "Usuário não logado, iniciando no splash")
+        "splash"
+    }
 
     NavHost(navController = navController, startDestination = startDestination) {
 
         // ========== AUTH ROUTES ==========
         composable("splash") {
+            Log.d("NavigationRouter", "Renderizando SplashScreen")
             SplashScreen(
                 onNavigateToLogin = {
+                    Log.d("NavigationRouter", "Navegando para login")
                     navController.navigate("login")
                 },
                 onNavigateToRegister = {
+                    Log.d("NavigationRouter", "Navegando para register")
                     navController.navigate("register")
                 }
             )
         }
 
         composable("login") {
+            Log.d("NavigationRouter", "Renderizando LoginScreen")
             LoginScreen(
-                onNavigateToRegister = { navController.navigate("register") },
-                onNavigateToRecover = { navController.navigate("recover") },
+                onNavigateToRegister = {
+                    Log.d("NavigationRouter", "Navegando para register desde login")
+                    navController.navigate("register")
+                },
+                onNavigateToRecover = {
+                    Log.d("NavigationRouter", "Navegando para recover")
+                    navController.navigate("recover")
+                },
                 onNavigateToMenu = {
+                    Log.d("NavigationRouter", "Login bem-sucedido, navegando para homeMenu")
                     navController.navigate("homeMenu") {
                         popUpTo("login") { inclusive = true }
                     }
@@ -76,18 +98,24 @@ fun NavigationRouter() {
         }
 
         composable("register") {
-            Log.d("NavigationRouter", "Rendering register screen")
+            Log.d("NavigationRouter", "Renderizando RegisterScreen")
             RegisterScreen(
                 onNavigateToVerification = { email ->
+                    Log.d("NavigationRouter", "Navegando para verification com email: $email")
                     navController.navigate("verification/$email")
                 }
             )
         }
 
         composable("recover") {
+            Log.d("NavigationRouter", "Renderizando RecoverPassword")
             RecoverPassword(
-                onBackClick = { navController.popBackStack() },
+                onBackClick = {
+                    Log.d("NavigationRouter", "Voltando de recover")
+                    navController.popBackStack()
+                },
                 onContinueClick = { email ->
+                    Log.d("NavigationRouter", "Navegando para verification_forgot_password com email: $email")
                     navController.navigate("verification_forgot_password/$email")
                 }
             )
@@ -99,10 +127,15 @@ fun NavigationRouter() {
             arguments = listOf(navArgument("email") { type = NavType.StringType })
         ) { backStackEntry ->
             val email = backStackEntry.arguments?.getString("email") ?: ""
+            Log.d("NavigationRouter", "Renderizando VerificationCode para email: $email")
             VerificationCode(
                 email = email,
-                onBackClick = { navController.popBackStack() },
+                onBackClick = {
+                    Log.d("NavigationRouter", "Voltando de verification")
+                    navController.popBackStack()
+                },
                 onVerificationSuccess = {
+                    Log.d("NavigationRouter", "Verificação bem-sucedida, navegando para login")
                     navController.navigate("login") {
                         popUpTo("register") { inclusive = true }
                     }
@@ -116,10 +149,15 @@ fun NavigationRouter() {
             arguments = listOf(navArgument("email") { type = NavType.StringType })
         ) { backStackEntry ->
             val email = backStackEntry.arguments?.getString("email") ?: ""
+            Log.d("NavigationRouter", "Renderizando VerificationCodeForgotPassword para email: $email")
             VerificationCodeForgotPassword(
                 email = email,
-                onBackClick = { navController.popBackStack() },
+                onBackClick = {
+                    Log.d("NavigationRouter", "Voltando de verification_forgot_password")
+                    navController.popBackStack()
+                },
                 onVerificationSuccess = {
+                    Log.d("NavigationRouter", "Verificação de senha bem-sucedida, navegando para newPassword")
                     navController.navigate("newPassword/$email")
                 }
             )
@@ -131,53 +169,84 @@ fun NavigationRouter() {
             arguments = listOf(navArgument("email") { type = NavType.StringType })
         ) { backStackEntry ->
             val email = backStackEntry.arguments?.getString("email") ?: ""
+            Log.d("NavigationRouter", "Renderizando NewPassword para email: $email")
             NewPassword(
                 email = email,
                 onContinue = {
+                    Log.d("NavigationRouter", "Nova senha definida, navegando para login")
                     navController.navigate("login") {
                         popUpTo("recover") { inclusive = true }
                     }
                 },
-                onBackClick = { navController.popBackStack() }
+                onBackClick = {
+                    Log.d("NavigationRouter", "Voltando de newPassword")
+                    navController.popBackStack()
+                }
             )
         }
 
         // ========== MAIN APP ROUTES ==========
         composable("homeMenu") {
+            Log.d("NavigationRouter", "Renderizando HomeMenu")
             HomeMenu(
-                onProfile = { navController.navigate("editProfile") },
-                onShoppingLists = { navController.navigate("shoppingLists") }
+                onProfile = {
+                    Log.d("NavigationRouter", "Navegando para editProfile")
+                    navController.navigate("editProfile")
+                },
+                onShoppingLists = {
+                    Log.d("NavigationRouter", "Navegando para shoppingLists")
+                    navController.navigate("shoppingLists")
+                }
             )
         }
 
         composable("editProfile") {
+            Log.d("NavigationRouter", "Renderizando EditProfilePage")
             EditProfilePage(
-                onHomeClick = { navController.navigate("homeMenu") },
-                onBackClick = { navController.navigate("homeMenu") }
+                onHomeClick = {
+                    Log.d("NavigationRouter", "Navegando para homeMenu desde editProfile")
+                    navController.navigate("homeMenu")
+                },
+                onBackClick = {
+                    Log.d("NavigationRouter", "Voltando de editProfile")
+                    navController.navigate("homeMenu")
+                }
             )
         }
 
         // ========== SHOPPING ROUTES ==========
         composable("shoppingLists") {
+            Log.d("NavigationRouter", "Renderizando ShoppingListsScreenContainer")
             ShoppingListsScreenContainer(
-                onBackClick = { navController.popBackStack() },
+                onBackClick = {
+                    Log.d("NavigationRouter", "Voltando de shoppingLists")
+                    navController.popBackStack()
+                },
                 onListClick = { listId ->
+                    Log.d("NavigationRouter", "Navegando para shopping_list com ID: $listId")
                     navController.navigate("shopping_list/$listId")
                 },
                 onHomeClick = {
+                    Log.d("NavigationRouter", "Navegando para homeMenu desde shoppingLists")
                     navController.navigate("homeMenu") {
                         popUpTo("shoppingLists") { inclusive = true }
                     }
                 },
-                onProfileClick = { navController.navigate("editProfile") },
+                onProfileClick = {
+                    Log.d("NavigationRouter", "Navegando para editProfile desde shoppingLists")
+                    navController.navigate("editProfile")
+                },
                 onClosestSupermarketClick = {
+                    Log.d("NavigationRouter", "Funcionalidade de supermercado mais próximo ainda não implementada")
                     // TODO: Implementar funcionalidade do supermercado mais próximo
                     // navController.navigate("nearbyStores")
                 },
                 onCreateListClick = {
+                    Log.d("NavigationRouter", "Criar lista será feito via dialog no próprio screen")
                     // Criar lista será feito via dialog no próprio screen
                 },
                 onLoginRequired = {
+                    Log.w("NavigationRouter", "Login necessário em shoppingLists, redirecionando")
                     navController.navigate("login") {
                         popUpTo("shoppingLists") { inclusive = true }
                     }
@@ -190,17 +259,38 @@ fun NavigationRouter() {
             arguments = listOf(navArgument("listId") { type = NavType.IntType })
         ) { backStackEntry ->
             val listId = backStackEntry.arguments?.getInt("listId") ?: 0
+            Log.d("NavigationRouter", "Renderizando ShoppingListScreenContainer para lista ID: $listId")
+
+            if (listId == 0) {
+                Log.e("NavigationRouter", "ID da lista inválido (0), redirecionando para shoppingLists")
+                navController.navigate("shoppingLists") {
+                    popUpTo("shopping_list/$listId") { inclusive = true }
+                }
+                return@composable
+            }
+
             ShoppingListScreenContainer(
                 listId = listId,
-                onBackClick = { navController.popBackStack() },
-                onAddClick = { navController.navigate("add_item/$listId") },
+                onBackClick = {
+                    Log.d("NavigationRouter", "Voltando de shopping_list")
+                    navController.popBackStack()
+                },
+                onAddClick = {
+                    Log.d("NavigationRouter", "Navegando para add_item com listId: $listId")
+                    navController.navigate("add_item/$listId")
+                },
                 onHomeClick = {
+                    Log.d("NavigationRouter", "Navegando para homeMenu desde shopping_list")
                     navController.navigate("homeMenu") {
                         popUpTo("shopping_list/$listId") { inclusive = true }
                     }
                 },
-                onProfileClick = { navController.navigate("editProfile") },
+                onProfileClick = {
+                    Log.d("NavigationRouter", "Navegando para editProfile desde shopping_list")
+                    navController.navigate("editProfile")
+                },
                 onLoginRequired = {
+                    Log.w("NavigationRouter", "Login necessário em shopping_list, redirecionando")
                     navController.navigate("login") {
                         popUpTo("shopping_list/$listId") { inclusive = true }
                     }
@@ -213,19 +303,38 @@ fun NavigationRouter() {
             arguments = listOf(navArgument("shoppingListId") { type = NavType.IntType })
         ) { backStackEntry ->
             val shoppingListId = backStackEntry.arguments?.getInt("shoppingListId") ?: 0
+            Log.d("NavigationRouter", "Renderizando AddItemScreen para lista ID: $shoppingListId")
+
+            if (shoppingListId == 0) {
+                Log.e("NavigationRouter", "ID da lista inválido (0) em add_item, redirecionando para shoppingLists")
+                navController.navigate("shoppingLists") {
+                    popUpTo("add_item/$shoppingListId") { inclusive = true }
+                }
+                return@composable
+            }
+
             AddItemScreen(
                 shoppingListId = shoppingListId,
-                onBackClick = { navController.popBackStack() },
+                onBackClick = {
+                    Log.d("NavigationRouter", "Voltando de add_item")
+                    navController.popBackStack()
+                },
                 onItemSaved = {
+                    Log.d("NavigationRouter", "Item salvo, voltando para shopping_list")
                     navController.popBackStack() // Voltar para a lista após salvar
                 },
                 onHomeClick = {
+                    Log.d("NavigationRouter", "Navegando para homeMenu desde add_item")
                     navController.navigate("homeMenu") {
                         popUpTo("add_item/$shoppingListId") { inclusive = true }
                     }
                 },
-                onProfileClick = { navController.navigate("editProfile") },
+                onProfileClick = {
+                    Log.d("NavigationRouter", "Navegando para editProfile desde add_item")
+                    navController.navigate("editProfile")
+                },
                 onLoginRequired = {
+                    Log.w("NavigationRouter", "Login necessário em add_item, redirecionando")
                     navController.navigate("login") {
                         popUpTo("add_item/$shoppingListId") { inclusive = true }
                     }

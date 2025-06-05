@@ -30,8 +30,8 @@ import pt.ipca.hometask.presentation.viewModel.auth.LoginViewModel
 fun LoginScreen(
     onNavigateToRegister: () -> Unit = {},
     onNavigateToMenu: () -> Unit,
-    onNavigateToRecover: ()-> Unit={},
-    viewModel: LoginViewModel = viewModel()
+    onNavigateToRecover: () -> Unit = {},
+    viewModel: LoginViewModel = viewModel() // ← Agora funciona sem parâmetros!
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -114,7 +114,6 @@ fun LoginScreen(
                     )
                 )
             }
-
 
             // ⚠️ MOSTRAR ERRO SE HOUVER
             if (uiState.error != null) {

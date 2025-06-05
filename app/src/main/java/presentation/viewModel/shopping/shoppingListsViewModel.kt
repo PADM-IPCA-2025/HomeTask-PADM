@@ -115,13 +115,13 @@ class ShoppingListsViewModel(
                 }.onFailure { exception ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        errorMessage = exception.message
+                        errorMessage = "Erro ao carregar listas: ${exception.message}"
                     )
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    errorMessage = e.message
+                    errorMessage = "Erro inesperado: ${e.message}"
                 )
             }
         }
@@ -135,22 +135,34 @@ class ShoppingListsViewModel(
 
             // Verificar se a lista pertence ao usuário atual
             val currentUserId = authRepository.getUserId()
-            if (currentUserId != null && shoppingList.homeId == currentUserId) {
-                val items = getItemsForList(listId)
-                itemsCache[listId] = items
+            if (currentUserId != null && (shoppingList.homeId == currentUserId || authRepository.isAdmin())) {
+                try {
+                    val items = getItemsForList(listId)
+                    itemsCache[listId] = items
 
-                val totalPrice = items.sumOf { (it.quantity * it.price).toDouble() }.toFloat()
-                val totalItems = items.size
-                val completedItems = items.count { it.state == "comprado" }
+                    val totalPrice = items.sumOf { (it.quantity * it.price).toDouble() }.toFloat()
+                    val totalItems = items.size
+                    val completedItems = items.count { it.state == "comprado" }
 
-                listsWithTotals.add(
-                    ShoppingListWithTotal(
-                        shoppingList = shoppingList,
-                        totalPrice = totalPrice,
-                        totalItems = totalItems,
-                        completedItems = completedItems
+                    listsWithTotals.add(
+                        ShoppingListWithTotal(
+                            shoppingList = shoppingList,
+                            totalPrice = totalPrice,
+                            totalItems = totalItems,
+                            completedItems = completedItems
+                        )
                     )
-                )
+                } catch (e: Exception) {
+                    // Se falhar ao carregar itens de uma lista específica, continuar com as outras
+                    listsWithTotals.add(
+                        ShoppingListWithTotal(
+                            shoppingList = shoppingList,
+                            totalPrice = 0f,
+                            totalItems = 0,
+                            completedItems = 0
+                        )
+                    )
+                }
             }
         }
 
@@ -161,25 +173,17 @@ class ShoppingListsViewModel(
         )
     }
 
-    // Método temporário com dados mockados - substituir quando tiver endpoint real
-    private fun getItemsForList(listId: Int): List<ShoppingItem> {
-        val userId = authRepository.getUserId() ?: return emptyList()
-
-        return when (listId) {
-            1 -> listOf(
-                ShoppingItem(1, "Leite", 2f, "pendente", 1.50f, listId, 1),
-                ShoppingItem(2, "Pão", 1f, "comprado", 0.80f, listId, 2),
-                ShoppingItem(3, "Ovos", 12f, "pendente", 2.30f, listId, 1)
-            )
-            2 -> listOf(
-                ShoppingItem(4, "Arroz", 1f, "comprado", 3.20f, listId, 2),
-                ShoppingItem(5, "Feijão", 1f, "comprado", 2.50f, listId, 2)
-            )
-            3 -> listOf(
-                ShoppingItem(6, "Maçãs", 2f, "comprado", 1.80f, listId, 3),
-                ShoppingItem(7, "Bananas", 1f, "comprado", 1.20f, listId, 3)
-            )
-            else -> emptyList()
+    // CORRIGIDO: Agora usa a API real em vez de dados mockados
+    private suspend fun getItemsForList(listId: Int): List<ShoppingItem> {
+        return try {
+            val result = repository.getItemsByShoppingList(listId)
+            result.getOrElse {
+                println("⚠️ Erro ao buscar itens da lista $listId: ${it.message}")
+                emptyList()
+            }
+        } catch (e: Exception) {
+            println("⚠️ Exceção ao buscar itens da lista $listId: ${e.message}")
+            emptyList()
         }
     }
 
@@ -242,13 +246,13 @@ class ShoppingListsViewModel(
                 }.onFailure { exception ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        errorMessage = exception.message
+                        errorMessage = "Erro ao criar lista: ${exception.message}"
                     )
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    errorMessage = e.message
+                    errorMessage = "Erro inesperado: ${e.message}"
                 )
             }
         }
@@ -291,13 +295,13 @@ class ShoppingListsViewModel(
                         loadListTotals(updatedAllLists)
                     }.onFailure { exception ->
                         _uiState.value = _uiState.value.copy(
-                            errorMessage = exception.message
+                            errorMessage = "Erro ao atualizar lista: ${exception.message}"
                         )
                     }
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    errorMessage = e.message
+                    errorMessage = "Erro inesperado: ${e.message}"
                 )
             }
         }
@@ -340,12 +344,12 @@ class ShoppingListsViewModel(
                     loadListTotals(updatedAllLists)
                 }.onFailure { exception ->
                     _uiState.value = _uiState.value.copy(
-                        errorMessage = exception.message
+                        errorMessage = "Erro ao deletar lista: ${exception.message}"
                     )
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    errorMessage = e.message
+                    errorMessage = "Erro inesperado: ${e.message}"
                 )
             }
         }
@@ -389,13 +393,13 @@ class ShoppingListsViewModel(
                         loadListTotals(updatedAllLists)
                     }.onFailure { exception ->
                         _uiState.value = _uiState.value.copy(
-                            errorMessage = exception.message
+                            errorMessage = "Erro ao marcar lista como concluída: ${exception.message}"
                         )
                     }
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    errorMessage = e.message
+                    errorMessage = "Erro inesperado: ${e.message}"
                 )
             }
         }
@@ -416,7 +420,7 @@ class ShoppingListsViewModel(
                 val currentUserId = authRepository.getUserId()
 
                 if (listToRefresh != null && (currentUserId == listToRefresh.homeId || authRepository.isAdmin())) {
-                    // Recarregar itens desta lista específica
+                    // Recarregar itens desta lista específica usando a API real
                     val items = getItemsForList(listId)
                     itemsCache[listId] = items
 
@@ -429,7 +433,7 @@ class ShoppingListsViewModel(
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    errorMessage = e.message
+                    errorMessage = "Erro inesperado: ${e.message}"
                 )
             }
         }
@@ -494,17 +498,7 @@ class ShoppingListsViewModel(
         }
     }
 
-    // Método para usar quando você tiver o endpoint real para buscar itens por lista
-    private suspend fun loadItemsForList(listId: Int): List<ShoppingItem> {
-        return try {
-            // Quando você implementar o endpoint:
-            // val result = repository.getItemsByShoppingList(listId)
-            // result.getOrElse { emptyList() }
-
-            // Por enquanto, usar dados mockados
-            getItemsForList(listId)
-        } catch (e: Exception) {
-            emptyList()
-        }
+    fun refreshLists() {
+        loadShoppingListsForCurrentUser()
     }
 }

@@ -18,6 +18,7 @@ interface ShoppingRepository {
     suspend fun getShoppingItemById(id: Int): Result<ShoppingItem>
     suspend fun updateShoppingItem(id: Int, item: ShoppingItem): Result<ShoppingItem>
     suspend fun deleteShoppingItem(id: Int): Result<Unit>
+    suspend fun getItemsByShoppingList(shoppingListId: Int): Result<List<ShoppingItem>>
 
     // Item Categories
     suspend fun createItemCategory(category: ItemCategory): Result<ItemCategory>

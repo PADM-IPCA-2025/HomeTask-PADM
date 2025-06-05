@@ -1,24 +1,23 @@
 package pt.ipca.hometask.presentation.viewModel.auth
 
-import android.content.Context
+import android.app.Application
 import androidx.compose.runtime.mutableStateOf
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 import pt.ipca.hometask.data.local.AuthPreferences
 import pt.ipca.hometask.data.repository.UserRepositoryImpl
 import pt.ipca.hometask.domain.model.User
 
-class LoginViewModel(
-    private val context: Context
-) : ViewModel() {
+class LoginViewModel(application: Application) : AndroidViewModel(application) {
     private val userRepository = UserRepositoryImpl()
-    private val authPreferences = AuthPreferences(context)
+    private val authPreferences = AuthPreferences(application.applicationContext)
 
     var uiState = mutableStateOf(LoginUiState())
         private set
 
     init {
+        // Verificar se já existe usuário logado
         checkExistingLogin()
     }
 
@@ -48,7 +47,7 @@ class LoginViewModel(
         viewModelScope.launch {
             userRepository.login(email, password)
                 .onSuccess { user ->
-                    // 🔥 SALVAR DADOS DO USUÁRIO (sem token)
+                    // 🔥 SALVAR NO SHARED PREFERENCES
                     authPreferences.saveUserData(user)
 
                     uiState.value = uiState.value.copy(

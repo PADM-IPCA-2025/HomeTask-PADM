@@ -25,10 +25,10 @@ data class ShoppingListUiState(
 
 class ShoppingListViewModel(
     private val repository: ShoppingRepository,
-    private val context: Context
-) : ViewModel() {
+    context: Context  // Mudado de Application para Context
+) : ViewModel() {  // Mudado de AndroidViewModel para ViewModel
 
-    private val authRepository = AuthRepository(context)
+    private val authRepository = AuthRepository(context)  // Usando context diretamente
     private val _uiState = MutableStateFlow(ShoppingListUiState())
     val uiState: StateFlow<ShoppingListUiState> = _uiState.asStateFlow()
 
@@ -43,7 +43,6 @@ class ShoppingListViewModel(
     }
 
     fun loadShoppingList(listId: Int) {
-        // Verificar se usuário está logado
         if (!authRepository.isLoggedIn()) {
             _uiState.value = _uiState.value.copy(
                 errorMessage = "Usuário não está logado",
@@ -56,16 +55,18 @@ class ShoppingListViewModel(
             _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
 
             try {
-                val result = repository.getShoppingListById(listId)
-                result.onSuccess { shoppingList ->
-                    // Verificar se a lista pertence ao usuário (através do homeId)
+                // Carregar a lista de compras
+                val listResult = repository.getShoppingListById(listId)
+                listResult.onSuccess { shoppingList ->
                     val userId = authRepository.getUserId()
-                    if (userId != null && shoppingList.homeId == userId) {
+
+                    // Verificar se o usuário tem permissão para acessar esta lista
+                    if (userId != null && (shoppingList.homeId == userId || authRepository.isAdmin())) {
                         _uiState.value = _uiState.value.copy(
-                            shoppingList = shoppingList,
-                            isLoading = false
+                            shoppingList = shoppingList
                         )
-                        // Carregar itens da lista
+
+                        // Carregar os itens da lista usando a API real
                         loadShoppingItems(listId)
                     } else {
                         _uiState.value = _uiState.value.copy(
@@ -76,47 +77,36 @@ class ShoppingListViewModel(
                 }.onFailure { exception ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        errorMessage = exception.message
+                        errorMessage = "Erro ao carregar lista: ${exception.message}"
                     )
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    errorMessage = e.message
+                    errorMessage = "Erro inesperado: ${e.message}"
                 )
             }
         }
     }
 
-    private fun loadShoppingItems(listId: Int) {
-        // Como não há endpoint específico para buscar itens por lista,
-        // usando dados mockados que filtram pelo shoppingListId
-        val mockItems = getMockItemsForList(listId)
-        updateShoppingItems(mockItems)
-    }
-
-    // Método temporário com dados mockados - substituir quando tiver endpoint real
-    private fun getMockItemsForList(listId: Int): List<ShoppingItem> {
-        val userId = authRepository.getUserId() ?: return emptyList()
-
-        return when (listId) {
-            1 -> listOf(
-                ShoppingItem(1, "Leite", 2f, "pendente", 1.50f, listId, 1),
-                ShoppingItem(2, "Pão", 1f, "comprado", 0.80f, listId, 2),
-                ShoppingItem(3, "Ovos", 12f, "pendente", 2.30f, listId, 1)
+    // CORRIGIDO: Agora usa a API real em vez de dados mockados
+    private suspend fun loadShoppingItems(listId: Int) {
+        try {
+            val itemsResult = repository.getItemsByShoppingList(listId)
+            itemsResult.onSuccess { items ->
+                updateShoppingItems(items)
+                _uiState.value = _uiState.value.copy(isLoading = false)
+            }.onFailure { exception ->
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = "Erro ao carregar itens: ${exception.message}"
+                )
+            }
+        } catch (e: Exception) {
+            _uiState.value = _uiState.value.copy(
+                isLoading = false,
+                errorMessage = "Erro inesperado ao carregar itens: ${e.message}"
             )
-            2 -> listOf(
-                ShoppingItem(4, "Arroz", 1f, "comprado", 3.20f, listId, 2),
-                ShoppingItem(5, "Feijão", 1f, "comprado", 2.50f, listId, 2)
-            )
-            3 -> listOf(
-                ShoppingItem(6, "Maçãs", 2f, "comprado", 1.80f, listId, 3),
-                ShoppingItem(7, "Bananas", 1f, "comprado", 1.20f, listId, 3)
-            )
-            else -> emptyList()
-        }.filter {
-            // Garantir que só mostra itens de listas do usuário logado
-            true // Aqui você pode adicionar lógica adicional se necessário
         }
     }
 
@@ -152,20 +142,21 @@ class ShoppingListViewModel(
                     )
 
                     val result = repository.updateShoppingItem(itemId, updatedItem)
-                    result.onSuccess {
+                    result.onSuccess { updatedFromServer ->
+                        // Usar a resposta do servidor para garantir consistência
                         val updatedItems = currentItems.map {
-                            if (it.id == itemId) updatedItem else it
+                            if (it.id == itemId) updatedFromServer else it
                         }
                         updateShoppingItems(updatedItems)
                     }.onFailure { exception ->
                         _uiState.value = _uiState.value.copy(
-                            errorMessage = exception.message
+                            errorMessage = "Erro ao atualizar item: ${exception.message}"
                         )
                     }
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    errorMessage = e.message
+                    errorMessage = "Erro inesperado: ${e.message}"
                 )
             }
         }
@@ -179,6 +170,13 @@ class ShoppingListViewModel(
             return
         }
 
+        if (newQuantity <= 0) {
+            _uiState.value = _uiState.value.copy(
+                errorMessage = "Quantidade deve ser maior que zero"
+            )
+            return
+        }
+
         viewModelScope.launch {
             try {
                 val currentItems = _uiState.value.shoppingItems
@@ -188,20 +186,21 @@ class ShoppingListViewModel(
                     val updatedItem = item.copy(quantity = newQuantity)
 
                     val result = repository.updateShoppingItem(itemId, updatedItem)
-                    result.onSuccess {
+                    result.onSuccess { updatedFromServer ->
+                        // Usar a resposta do servidor para garantir consistência
                         val updatedItems = currentItems.map {
-                            if (it.id == itemId) updatedItem else it
+                            if (it.id == itemId) updatedFromServer else it
                         }
                         updateShoppingItems(updatedItems)
                     }.onFailure { exception ->
                         _uiState.value = _uiState.value.copy(
-                            errorMessage = exception.message
+                            errorMessage = "Erro ao atualizar quantidade: ${exception.message}"
                         )
                     }
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    errorMessage = e.message
+                    errorMessage = "Erro inesperado: ${e.message}"
                 )
             }
         }
@@ -224,14 +223,21 @@ class ShoppingListViewModel(
                     updateShoppingItems(updatedItems)
                 }.onFailure { exception ->
                     _uiState.value = _uiState.value.copy(
-                        errorMessage = exception.message
+                        errorMessage = "Erro ao remover item: ${exception.message}"
                     )
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    errorMessage = e.message
+                    errorMessage = "Erro inesperado: ${e.message}"
                 )
             }
+        }
+    }
+
+    fun refreshList() {
+        val currentListId = _uiState.value.shoppingList?.id
+        if (currentListId != null) {
+            loadShoppingList(currentListId)
         }
     }
 
@@ -249,10 +255,5 @@ class ShoppingListViewModel(
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(errorMessage = null)
-    }
-
-    fun logout() {
-        authRepository.logout()
-        _uiState.value = ShoppingListUiState() // Reset completo do estado
     }
 }

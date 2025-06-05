@@ -50,4 +50,8 @@ interface ShoppingApi {
 
     @DELETE("api/shopping/item-categories/{id}")
     suspend fun deleteItemCategory(@Path("id") id: Int): Response<Unit>
+
+    @GET("api/shopping/shopping-items/list/{shoppingListId}")
+    suspend fun getItemsByShoppingList(@Path("shoppingListId") shoppingListId: Int): Response<List<ShoppingItemDto>>
+
 }

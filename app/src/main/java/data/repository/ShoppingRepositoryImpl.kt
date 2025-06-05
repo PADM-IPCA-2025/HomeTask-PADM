@@ -252,4 +252,17 @@ class ShoppingRepositoryImpl : ShoppingRepository {
             Result.failure(e)
         }
     }
+
+    override suspend fun getItemsByShoppingList(shoppingListId: Int): Result<List<ShoppingItem>> {
+        return try {
+            val response = api.getItemsByShoppingList(shoppingListId)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!.map { it.toDomain() })
+            } else {
+                Result.failure(Exception("Get shopping items by list failed: ${response.message()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

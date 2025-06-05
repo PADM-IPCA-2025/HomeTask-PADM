@@ -62,4 +62,23 @@ class AuthRepository(private val context: Context) {
     fun getUserInfo(): Triple<Int?, String?, String?> {
         return Triple(getUserId(), getUserName(), getUserEmail())
     }
+
+    companion object {
+        // Métodos estáticos para facilitar uso em ViewModels que precisam de Application
+        fun getInstance(context: Context): AuthRepository {
+            return AuthRepository(context)
+        }
+
+        fun isUserLoggedIn(context: Context): Boolean {
+            return AuthPreferences(context).isLoggedIn()
+        }
+
+        fun getCurrentUserId(context: Context): Int? {
+            return AuthPreferences(context).getUserId()
+        }
+
+        fun getCurrentUserName(context: Context): String? {
+            return AuthPreferences(context).getUserName()
+        }
+    }
 }

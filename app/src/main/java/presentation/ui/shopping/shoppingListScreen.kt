@@ -33,6 +33,7 @@ fun ShoppingListScreen(
     onLoginRequired: () -> Unit = {}
 ) {
     val context = LocalContext.current
+    // Corrigido: agora passa Context em vez de Application
     val viewModel = remember { ShoppingListViewModel(ShoppingRepositoryImpl(), context) }
     val uiState by viewModel.uiState.collectAsState()
 

@@ -26,7 +26,7 @@ data class AddItemUiState(
 
 class AddItemViewModel(
     private val repository: ShoppingRepository,
-    private val context: Context
+    context: Context
 ) : ViewModel() {
 
     private val authRepository = AuthRepository(context)
@@ -86,13 +86,13 @@ class AddItemViewModel(
                 }.onFailure { exception ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        errorMessage = exception.message
+                        errorMessage = "Erro ao carregar categorias: ${exception.message}"
                     )
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    errorMessage = e.message
+                    errorMessage = "Erro inesperado: ${e.message}"
                 )
             }
         }
@@ -104,7 +104,6 @@ class AddItemViewModel(
     }
 
     fun updateQuantity(qty: String) {
-        // Validar se é um número válido
         if (qty.isEmpty() || qty.toFloatOrNull() != null) {
             _quantity.value = qty
             validateForm()
@@ -112,7 +111,6 @@ class AddItemViewModel(
     }
 
     fun updatePricePerUnit(price: String) {
-        // Validar se é um número decimal válido
         if (price.isEmpty() || price.toFloatOrNull() != null) {
             _pricePerUnit.value = price
             validateForm()
@@ -122,13 +120,6 @@ class AddItemViewModel(
     fun selectCategory(category: ItemCategory) {
         _uiState.value = _uiState.value.copy(selectedCategory = category)
         validateForm()
-    }
-
-    fun selectCategoryByDescription(categoryDescription: String) {
-        val category = _uiState.value.categories.find { it.description == categoryDescription }
-        category?.let {
-            selectCategory(it)
-        }
     }
 
     private fun validateForm() {
@@ -177,7 +168,7 @@ class AddItemViewModel(
                 val newItem = ShoppingItem(
                     description = _itemName.value.trim(),
                     quantity = _quantity.value.toFloat(),
-                    state = "pendente", // Estado inicial
+                    state = "pendente",
                     price = _pricePerUnit.value.toFloat(),
                     shoppingListId = shoppingListId,
                     itemCategoryId = selectedCategory.id!!
@@ -193,44 +184,13 @@ class AddItemViewModel(
                 }.onFailure { exception ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        errorMessage = exception.message
+                        errorMessage = "Erro ao salvar item: ${exception.message}"
                     )
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    errorMessage = e.message
-                )
-            }
-        }
-    }
-
-    fun createNewCategory(description: String) {
-        if (!authRepository.isLoggedIn()) {
-            _uiState.value = _uiState.value.copy(
-                errorMessage = "Usuário não está logado"
-            )
-            return
-        }
-
-        viewModelScope.launch {
-            try {
-                val newCategory = ItemCategory(description = description.trim())
-                val result = repository.createItemCategory(newCategory)
-
-                result.onSuccess { createdCategory ->
-                    // Recarregar categorias para incluir a nova
-                    loadCategories()
-                    // Selecionar automaticamente a nova categoria
-                    selectCategory(createdCategory)
-                }.onFailure { exception ->
-                    _uiState.value = _uiState.value.copy(
-                        errorMessage = exception.message
-                    )
-                }
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    errorMessage = e.message
+                    errorMessage = "Erro inesperado: ${e.message}"
                 )
             }
         }
@@ -254,19 +214,6 @@ class AddItemViewModel(
         _uiState.value = _uiState.value.copy(isItemSaved = false)
     }
 
-    // Função para facilitar o uso no screen com os parâmetros atuais
-    fun saveItemWithCurrentData(shoppingListId: Int, itemName: String, quantity: String, pricePerUnit: String, categoryDescription: String) {
-        updateItemName(itemName)
-        updateQuantity(quantity)
-        updatePricePerUnit(pricePerUnit)
-        selectCategoryByDescription(categoryDescription)
-
-        // Aguardar um frame para que as validações sejam processadas
-        viewModelScope.launch {
-            saveItem(shoppingListId)
-        }
-    }
-
     fun getCurrentUserInfo(): Triple<Int?, String?, String?> {
         return if (authRepository.isLoggedIn()) {
             Triple(
@@ -276,21 +223,6 @@ class AddItemViewModel(
             )
         } else {
             Triple(null, null, null)
-        }
-    }
-
-    fun logout() {
-        authRepository.logout()
-        _uiState.value = AddItemUiState() // Reset completo do estado
-        _itemName.value = ""
-        _quantity.value = ""
-        _pricePerUnit.value = ""
-    }
-
-    fun retryAfterLogin() {
-        checkUserAuthentication()
-        if (authRepository.isLoggedIn()) {
-            loadCategories()
         }
     }
 }

@@ -10,12 +10,14 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.lifecycle.viewmodel.compose.viewModel
 import modules.TopBar
 import modules.ProfilePicture
 import modules.CustomTextBox
 import modules.CustomButton
 import modules.BottomMenuBar
 import pt.ipca.hometask.R
+import pt.ipca.hometask.presentation.viewModel.profile.EditProfileViewModel
 
 @Composable
 fun EditProfilePage(
@@ -24,12 +26,21 @@ fun EditProfilePage(
     onSaveClick: () -> Unit = {},
     onLogoutClick: () -> Unit = {},
     onEditPhotoClick: () -> Unit = {},
-    onHomeClick:()-> Unit={}
+    onHomeClick: () -> Unit = {},
+    viewModel: EditProfileViewModel = viewModel()
 ) {
-    // Estados para os campos de texto
-    var name by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
+    val uiState = viewModel.uiState.value
+    var name by remember { mutableStateOf(uiState.currentUser?.name ?: "") }
+    var email by remember { mutableStateOf(uiState.currentUser?.email ?: "") }
     var password by remember { mutableStateOf("") }
+
+    // Observar mudanças no estado de logout
+    LaunchedEffect(uiState.isLogoutSuccessful) {
+        if (uiState.isLogoutSuccessful) {
+            onLogoutClick()
+            viewModel.clearLogoutSuccess()
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -48,7 +59,7 @@ fun EditProfilePage(
 
             // Foto de perfil com botão de editar
             ProfilePicture(
-                imageRes = R.drawable.ic_launcher_background, // Substitua pela imagem da Teresa
+                imageRes = R.drawable.ic_launcher_background,
                 size = 120.dp,
                 showEditButton = true,
                 onEditClick = onEditPhotoClick
@@ -61,8 +72,6 @@ fun EditProfilePage(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.Start
             ) {
-
-
                 CustomTextBox(
                     value = name,
                     onValueChange = { name = it },
@@ -77,7 +86,6 @@ fun EditProfilePage(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.Start
             ) {
-
                 CustomTextBox(
                     value = email,
                     onValueChange = { email = it },
@@ -95,7 +103,6 @@ fun EditProfilePage(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.Start
             ) {
-
                 CustomTextBox(
                     value = password,
                     onValueChange = { password = it },
@@ -109,7 +116,9 @@ fun EditProfilePage(
             // Botão Save Changes
             CustomButton(
                 text = "Save Changes",
-                onClick = onSaveClick
+                onClick = {
+                    viewModel.updateProfile(name, email, password)
+                }
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -117,7 +126,7 @@ fun EditProfilePage(
             // Botão Logout
             CustomButton(
                 text = "Logout",
-                onClick = onLogoutClick,
+                onClick = { viewModel.logout() },
                 isDanger = true
             )
         }
@@ -131,8 +140,6 @@ fun EditProfilePage(
                 onProfileClick = {}
             )
         }
-
-
     }
 }
 
@@ -140,10 +147,11 @@ fun EditProfilePage(
 @Composable
 fun EditProfilePagePreview() {
     EditProfilePage(
-        onBackClick = { /* Navegar para trás */ },
-        onSettingsClick = { /* Abrir configurações */ },
-        onSaveClick = { /* Guardar alterações */ },
-        onLogoutClick = { /* Fazer logout */ },
-        onEditPhotoClick = { /* Editar foto de perfil */ }
+        onBackClick = { },
+        onSettingsClick = { },
+        onSaveClick = { },
+        onLogoutClick = { },
+        onEditPhotoClick = { },
+        onHomeClick = { }
     )
 }

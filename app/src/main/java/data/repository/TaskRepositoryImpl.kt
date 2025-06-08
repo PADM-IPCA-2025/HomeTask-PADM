@@ -127,4 +127,17 @@ class TaskRepositoryImpl : TaskRepository {
             Result.failure(e)
         }
     }
+
+    suspend fun getTasksByUserId(userId: Int): Result<List<Task>> {
+        return try {
+            val response = api.getTaskParticipantsByUserId(userId)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!.map { it.toDomain() })
+            } else {
+                Result.failure(Exception("Erro ao carregar tarefas"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

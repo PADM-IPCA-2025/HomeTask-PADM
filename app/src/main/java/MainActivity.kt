@@ -8,6 +8,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -27,6 +28,8 @@ import pt.ipca.hometask.presentation.ui.shopping.AddItemScreen
 import pt.ipca.hometask.presentation.ui.shopping.ShoppingListScreenContainer
 import pt.ipca.hometask.presentation.ui.shopping.ShoppingListsScreenContainer
 import presentation.ui.splash.SplashScreen
+import pt.ipca.hometask.presentation.viewModel.main.HomeMenuViewModel
+import presentation.ui.home.AddEditHouseScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -188,7 +191,18 @@ fun NavigationRouter() {
         // ========== MAIN APP ROUTES ==========
         composable("homeMenu") {
             Log.d("NavigationRouter", "Renderizando HomeMenu")
+            val viewModel: HomeMenuViewModel = viewModel()
+            
+            // Atualizar o estado do usuário no ViewModel
+            viewModel.updateUserState(
+                isLoggedIn = authRepository.isLoggedIn(),
+                userId = authRepository.getUserId(),
+                userName = authRepository.getUserName(),
+                roles = authRepository.getUserRoles()
+            )
+
             HomeMenu(
+                viewModel = viewModel,
                 onProfile = {
                     Log.d("NavigationRouter", "Navegando para editProfile")
                     navController.navigate("editProfile")
@@ -196,6 +210,14 @@ fun NavigationRouter() {
                 onShoppingLists = {
                     Log.d("NavigationRouter", "Navegando para shoppingLists")
                     navController.navigate("shoppingLists")
+                },
+                onAddHome = {
+                    Log.d("NavigationRouter", "Navegando para addHome")
+                    navController.navigate("addHome")
+                },
+                onEditHome = { homeId ->
+                    Log.d("NavigationRouter", "Navegando para editHome com ID: $homeId")
+                    navController.navigate("editHome/$homeId")
                 }
             )
         }
@@ -203,13 +225,30 @@ fun NavigationRouter() {
         composable("editProfile") {
             Log.d("NavigationRouter", "Renderizando EditProfilePage")
             EditProfilePage(
-                onHomeClick = {
-                    Log.d("NavigationRouter", "Navegando para homeMenu desde editProfile")
-                    navController.navigate("homeMenu")
-                },
                 onBackClick = {
                     Log.d("NavigationRouter", "Voltando de editProfile")
-                    navController.navigate("homeMenu")
+                    navController.popBackStack()
+                },
+                onSettingsClick = {
+                    // TODO: Implementar configurações
+                },
+                onSaveClick = {
+                    // TODO: Implementar salvamento
+                },
+                onLogoutClick = {
+                    Log.d("NavigationRouter", "Logout realizado, navegando para splash")
+                    navController.navigate("splash") {
+                        popUpTo("homeMenu") { inclusive = true }
+                    }
+                },
+                onEditPhotoClick = {
+                    // TODO: Implementar edição de foto
+                },
+                onHomeClick = {
+                    Log.d("NavigationRouter", "Navegando para homeMenu desde editProfile")
+                    navController.navigate("homeMenu") {
+                        popUpTo("editProfile") { inclusive = true }
+                    }
                 }
             )
         }
@@ -339,6 +378,21 @@ fun NavigationRouter() {
                         popUpTo("add_item/$shoppingListId") { inclusive = true }
                     }
                 }
+            )
+        }
+
+        composable("addHome") {
+            // Obtenha o mesmo viewModel usado no HomeMenu
+            val viewModel = viewModel<HomeMenuViewModel>()
+            AddEditHouseScreen(
+                isEditMode = false,
+                onBackClick = { navController.popBackStack() },
+                onSaveClick = { name, address, zipCode ->
+                    viewModel.createHome(name, address, zipCode)
+                    navController.popBackStack() // Volta para o menu após criar
+                },
+                onHomeClick = { navController.navigate("homeMenu") },
+                onProfileClick = { navController.navigate("editProfile") }
             )
         }
     }

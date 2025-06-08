@@ -14,6 +14,7 @@ import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -45,6 +46,8 @@ fun RegisterScreen(
     var password by remember { mutableStateOf("") }
     var selectedRole by remember { mutableStateOf("Resident") }
     var profileImageUri by remember { mutableStateOf<String?>(null) }
+    var expanded by remember { mutableStateOf(false) }
+    val roles = listOf("Resident", "Manager")
 
     val uiState by viewModel.uiState
 
@@ -60,7 +63,7 @@ fun RegisterScreen(
     // Navegar quando registro for bem-sucedido
     LaunchedEffect(uiState.isRegistrationSuccessful) {
         if (uiState.isRegistrationSuccessful) {
-            onNavigateToVerification(email) // ← Mudança: passa o email
+            onNavigateToVerification(email)
         }
     }
 
@@ -150,18 +153,45 @@ fun RegisterScreen(
                 placeholder = "Email"
             )
 
-            // Dropdown Role fixo
-            OutlinedTextField(
-                value = selectedRole,
-                onValueChange = { },
-                label = { Text("Role") },
-                readOnly = true,
-                modifier = Modifier.fillMaxWidth(),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = colorResource(id = R.color.secondary_blue),
-                    unfocusedBorderColor = Color.Gray
+            // Dropdown Role
+            Box {
+                OutlinedTextField(
+                    value = selectedRole,
+                    onValueChange = { },
+                    label = { Text("Role") },
+                    readOnly = true,
+                    trailingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.ArrowDropDown,
+                            contentDescription = "Select Role",
+                            modifier = Modifier.clickable { expanded = true }
+                        )
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { expanded = true },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = colorResource(id = R.color.secondary_blue),
+                        unfocusedBorderColor = Color.Gray
+                    )
                 )
-            )
+
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false },
+                    modifier = Modifier.fillMaxWidth(0.9f)
+                ) {
+                    roles.forEach { role ->
+                        DropdownMenuItem(
+                            text = { Text(role) },
+                            onClick = {
+                                selectedRole = role
+                                expanded = false
+                            }
+                        )
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -229,7 +259,7 @@ fun RegisterScreen(
                 ),
                 onClick = { offset ->
                     if (offset >= 26) {
-                        onNavigateToVerification("") // ← Placeholder, vai para login normalmente
+                        onNavigateToVerification("")
                     }
                 }
             )

@@ -16,6 +16,9 @@ interface HomeTaskApi {
     @GET("api/tasks/homes/{id}")
     suspend fun getHomeById(@Path("id") id: Int): Response<HomeDto>
 
+    @GET("api/tasks/homes/user/{id}/all")
+    suspend fun getHomeByUserId(@Path("id") id: Int): Response<ApiResponse<List<HomeDto>>>
+
     @PUT("api/tasks/homes/{id}")
     suspend fun updateHome(@Path("id") id: Int, @Body home: HomeDto): Response<HomeDto>
 
@@ -85,5 +88,5 @@ interface HomeTaskApi {
 
     // ZipCode endpoints
     @GET("api/tasks/zipcodes")
-    suspend fun getAllZipCodes(): Response<List<ZipCodeDto>>
+    suspend fun getAllZipCodes(): Response<ApiResponse<List<ZipCodeDto>>>
 }

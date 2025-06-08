@@ -52,9 +52,9 @@ class AuthRepository(private val context: Context) {
         authPreferences.updateUserData(name, email, roles, profilePicture)
     }
 
-    // Método útil para verificar se é admin/gestor
+    // Método útil para verificar se é manager/admin
     fun isAdmin(): Boolean {
-        return getUserRoles()?.contains("Gestor", ignoreCase = true) == true ||
+        return getUserRoles()?.contains("Manager", ignoreCase = true) == true ||
                 getUserRoles()?.contains("Admin", ignoreCase = true) == true
     }
 

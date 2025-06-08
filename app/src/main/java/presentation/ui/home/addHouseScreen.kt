@@ -1,24 +1,32 @@
 package presentation.ui.home
 
+import android.util.Log
 import modules.TopBar
 import modules.CustomTextBox
 import modules.CustomButton
 import modules.BottomMenuBar
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.colorResource
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import pt.ipca.hometask.R
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.foundation.clickable
+import pt.ipca.hometask.presentation.viewModel.home.AddHouseViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.runtime.collectAsState
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddEditHouseScreen(
     isEditMode: Boolean = false,
@@ -29,11 +37,30 @@ fun AddEditHouseScreen(
     onSaveClick: (String, String, String) -> Unit = { _, _, _ -> },
     onRemoveClick: () -> Unit = {},
     onHomeClick: () -> Unit = {},
-    onProfileClick: () -> Unit = {}
+    onProfileClick: () -> Unit = {},
+    viewModel: AddHouseViewModel = viewModel()
 ) {
-    var homeName by remember { mutableStateOf(initialHomeName) }
+    val uiState by viewModel.uiState.collectAsState()
+    var name by remember { mutableStateOf(initialHomeName) }
     var address by remember { mutableStateOf(initialAddress) }
-    var zipCode by remember { mutableStateOf(initialZipCode) }
+    var selectedZipCodeId by remember { mutableStateOf<Int?>(null) }
+    var expanded by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        viewModel.loadZipCodes()
+    }
+
+    LaunchedEffect(uiState) {
+        Log.d("AddEditHouseScreen", "UI State updated - Zip codes: ${uiState.zipCodes.size}")
+        uiState.zipCodes.forEach { zip ->
+            Log.d("AddEditHouseScreen", "Zip code: id=${zip.id}, postalCode=${zip.postalCode}, city=${zip.city}")
+        }
+    }
+
+    LaunchedEffect(expanded) {
+        Log.d("AddEditHouseScreen", "Dropdown expanded: $expanded")
+        Log.d("AddEditHouseScreen", "Available zip codes: ${uiState.zipCodes.size}")
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -63,9 +90,9 @@ fun AddEditHouseScreen(
                 )
 
                 CustomTextBox(
-                    value = homeName,
-                    onValueChange = { homeName = it },
-                    placeholder = "Enter home name"
+                    value = name,
+                    onValueChange = { name = it },
+                    placeholder = "Home name"
                 )
             }
 
@@ -86,13 +113,13 @@ fun AddEditHouseScreen(
                 CustomTextBox(
                     value = address,
                     onValueChange = { address = it },
-                    placeholder = "Enter address"
+                    placeholder = "Address"
                 )
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Zip Code
+            // Zip Code Dropdown
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.Start
@@ -103,15 +130,37 @@ fun AddEditHouseScreen(
                     fontSize = 14.sp,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
-
-                CustomTextBox(
-                    value = zipCode,
-                    onValueChange = { zipCode = it },
-                    placeholder = "Enter zip code",
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number
+                Box {
+                    val selectedZipCode = uiState.zipCodes.find { it.id == selectedZipCodeId }
+                    OutlinedTextField(
+                        value = selectedZipCode?.postalCode ?: "",
+                        onValueChange = {},
+                        readOnly = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { expanded = true },
+                        placeholder = { Text("Select Zip Code") },
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                        }
                     )
-                )
+
+                    DropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        uiState.zipCodes.forEach { zipCode ->
+                            DropdownMenuItem(
+                                text = { Text(zipCode.postalCode) },
+                                onClick = {
+                                    selectedZipCodeId = zipCode.id
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
             }
         }
 
@@ -127,7 +176,9 @@ fun AddEditHouseScreen(
             CustomButton(
                 text = "Save",
                 onClick = {
-                    onSaveClick(homeName, address, zipCode)
+                    selectedZipCodeId?.let { zipId ->
+                        viewModel.createHome(name, address, zipId.toString())
+                    }
                 }
             )
 
@@ -154,19 +205,15 @@ fun AddEditHouseScreen(
     }
 }
 
-@Preview(showBackground = true)
 @Composable
 fun AddEditHouseScreenPreview() {
     Column {
-        // Add Mode Preview
         AddEditHouseScreen(
             isEditMode = false,
-            onBackClick = { /* Voltar */ },
-            onSaveClick = { homeName, address, zipCode ->
-                /* Salvar casa */
-            },
-            onHomeClick = { /* Home */ },
-            onProfileClick = { /* Profile */ }
+            onBackClick = { },
+            onSaveClick = { _, _, _ -> },
+            onHomeClick = { },
+            onProfileClick = { }
         )
     }
 }

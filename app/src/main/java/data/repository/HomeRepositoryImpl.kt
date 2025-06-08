@@ -68,6 +68,44 @@ class HomeRepositoryImpl : HomeRepository {
         }
     }
 
+    override suspend fun getHomeByUserId(userId: Int): Result<List<Home>> {
+        return try {
+            android.util.Log.d("HomeRepositoryImpl", "Getting homes for user $userId")
+            val response = api.getHomeByUserId(userId)
+            android.util.Log.d("HomeRepositoryImpl", "API response: ${response.isSuccessful}, body: ${response.body()}")
+
+            if (response.isSuccessful) {
+                val apiResponse = response.body()
+                if (apiResponse?.success == true) {
+                    val homes = apiResponse.data
+                    android.util.Log.d("HomeRepositoryImpl", "Found ${homes.size} homes")
+
+                    // Filtrar casas que pertencem ao usuário
+                    val userHomes = homes.filter { it.userId == userId }
+                    android.util.Log.d("HomeRepositoryImpl", "Found ${userHomes.size} homes for user $userId")
+
+                    // Converter todas as casas para o modelo de domínio
+                    val domainHomes = userHomes.map { homeDto ->
+                        val domainHome = homeDto.toDomain()
+                        android.util.Log.d("HomeRepositoryImpl", "Returning home: ${domainHome.name}")
+                        domainHome
+                    }
+
+                    Result.success(domainHomes)
+                } else {
+                    android.util.Log.e("HomeRepositoryImpl", "API returned error: ${apiResponse?.message}")
+                    Result.failure(Exception(apiResponse?.message ?: "Unknown error"))
+                }
+            } else {
+                android.util.Log.e("HomeRepositoryImpl", "API call failed: ${response.code()}")
+                Result.failure(Exception("Failed to get homes: ${response.code()}"))
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("HomeRepositoryImpl", "Error getting homes", e)
+            Result.failure(e)
+        }
+    }
+
     override suspend fun updateHome(id: Int, home: Home): Result<Home> {
         return try {
             val response = api.updateHome(id, home.toDto())

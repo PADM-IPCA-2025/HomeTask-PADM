@@ -22,6 +22,12 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import pt.ipca.hometask.R
+import pt.ipca.hometask.presentation.viewModel.task.TaskMenuViewModel
+import pt.ipca.hometask.presentation.viewModel.task.TaskMenuUiState
+import androidx.lifecycle.viewmodel.compose.viewModel
+import android.util.Log
+import pt.ipca.hometask.presentation.viewModel.main.HomeMenuViewModel
+import androidx.navigation.NavController
 
 data class TaskData(
     val id: Int,
@@ -33,6 +39,10 @@ data class TaskData(
 
 @Composable
 fun TasksMenuScreen(
+    homeId: Int,
+    homeMenuViewModel: HomeMenuViewModel,
+    viewModel: TaskMenuViewModel = viewModel(),
+    navController: NavController? = null,
     onShoppingCartClick: () -> Unit = {},
     onAddTaskClick: () -> Unit = {},
     onInviteResidentClick: () -> Unit = {},
@@ -40,36 +50,31 @@ fun TasksMenuScreen(
     onProfileClick: () -> Unit = {}
 ) {
     var selectedTab by remember { mutableStateOf(0) }
+    val uiState = viewModel.uiState.value
+    val userName = homeMenuViewModel.uiState.value.currentUserName
 
-    var progressTasks by remember {
-        mutableStateOf(
-            listOf(
-                TaskData(1, "Wash the dishes", "Date: 15/02/2025", R.drawable.ic_launcher_background, false),
-                TaskData(2, "Vaccum the floor", "Date: 17/02/2025", R.drawable.ic_launcher_background, false)
-            )
-        )
+    // Carregar tasks da casa ao abrir a tela
+    LaunchedEffect(homeId) {
+        viewModel.loadTasksByHome(homeId)
     }
 
-    var historyTasks by remember {
-        mutableStateOf(
-            listOf(
-                TaskData(3, "Wash the dishes", "Date: 02/02/2025", R.drawable.ic_launcher_background, true),
-                TaskData(4, "Vaccum the floor", "Date: 02/02/2025", R.drawable.ic_launcher_background, true),
-                TaskData(5, "Clean the room", "Date: 05/02/2025", R.drawable.ic_launcher_background, true),
-                TaskData(6, "Take out the trash", "Date: 07/02/2025", R.drawable.ic_launcher_background, true)
-            )
-        )
-    }
+    val progressTasks = uiState.tasks.filter { it.state == "Pendente" }
+    val historyTasks = uiState.tasks.filter { it.state != "Pendente" }
+
+    Log.d("TasksMenuScreen", "progressTasks: " + progressTasks.joinToString { it.title + " (" + it.state + ")" })
+    Log.d("TasksMenuScreen", "historyTasks: " + historyTasks.joinToString { it.title + " (" + it.state + ")" })
+
+
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 16.dp)
-                .padding(bottom = 140.dp)
+                .padding(bottom = 120.dp)
         ) {
-            Spacer(modifier = Modifier.height(60.dp))
-
+            Spacer(modifier = Modifier.height(40.dp)) // Spacer no início para a ilha
+            Spacer(modifier = Modifier.height(24.dp))
             // Header com nome e ícone carrinho
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -84,14 +89,13 @@ fun TasksMenuScreen(
                         fontFamily = FontFamily(Font(R.font.inter_light))
                     )
                     Text(
-                        text = "Teresa Lopes",
+                        text = userName ?: "User",
                         fontSize = 20.sp,
                         color = colorResource(id = R.color.secondary_blue),
                         fontFamily = FontFamily(Font(R.font.inter_bold)),
                         fontWeight = FontWeight.Bold
                     )
                 }
-
                 Icon(
                     imageVector = Icons.Default.ShoppingCart,
                     contentDescription = "Shopping Cart",
@@ -101,9 +105,7 @@ fun TasksMenuScreen(
                     tint = colorResource(id = R.color.secondary_blue)
                 )
             }
-
-            Spacer(modifier = Modifier.height(32.dp))
-
+            Spacer(modifier = Modifier.height(24.dp))
             // Custom Tab Row
             Row(
                 modifier = Modifier.fillMaxWidth()
@@ -114,7 +116,6 @@ fun TasksMenuScreen(
                     onClick = { selectedTab = 0 },
                     modifier = Modifier.weight(1f)
                 )
-
                 TabButton(
                     text = "History",
                     isSelected = selectedTab == 1,
@@ -122,9 +123,7 @@ fun TasksMenuScreen(
                     modifier = Modifier.weight(1f)
                 )
             }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
+            Spacer(modifier = Modifier.height(16.dp))
             // Home Tasks header com ícone +
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -137,81 +136,86 @@ fun TasksMenuScreen(
                     fontWeight = FontWeight.Bold,
                     color = colorResource(id = R.color.secondary_blue)
                 )
-
                 Icon(
                     imageVector = Icons.Default.Add,
                     contentDescription = "Add Task",
                     modifier = Modifier
                         .size(24.dp)
-                        .clickable { onAddTaskClick() },
+                        .clickable {
+                            navController?.navigate("addTask/$homeId")
+                        },
                     tint = colorResource(id = R.color.secondary_blue)
                 )
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
+            Spacer(modifier = Modifier.height(12.dp))
             // Tasks list based on selected tab
             Column(
                 modifier = Modifier
                     .weight(1f)
                     .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                when (selectedTab) {
-                    0 -> {
-                        // In Progress tasks
-                        progressTasks.forEach { task ->
-                            TaskListItem(
-                                taskName = task.taskName,
-                                taskDate = task.taskDate,
-                                imageRes = task.imageRes,
-                                isCompleted = task.isCompleted,
-                                onStatusChange = { completed ->
-                                    if (completed) {
-                                        // Move to history
-                                        progressTasks = progressTasks.filter { it.id != task.id }
-                                        historyTasks = historyTasks + task.copy(isCompleted = true)
-                                    }
+                if (uiState.isLoading) {
+                    CircularProgressIndicator(color = colorResource(id = R.color.secondary_blue))
+                } else {
+                    when (selectedTab) {
+                        0 -> {
+                            if (progressTasks.isEmpty()) {
+                                Text("No tasks in progress", color = colorResource(id = R.color.secondary_blue))
+                            } else {
+                                progressTasks.forEach { task ->
+                                    TaskListItem(
+                                        taskName = task.title,
+                                        taskDate = task.date,
+                                        imageRes = R.drawable.ic_launcher_background,
+                                        isCompleted = false,
+                                        onStatusChange = {
+                                            val newState = if (task.state == "Pendente") "Concluida" else "Pendente"
+                                            viewModel.updateTaskState(task.id!!, newState, homeId)
+                                        }
+                                    )
                                 }
-                            )
+                            }
                         }
-                    }
-                    1 -> {
-                        // History tasks
-                        historyTasks.forEach { task ->
-                            TaskListItem(
-                                taskName = task.taskName,
-                                taskDate = task.taskDate,
-                                imageRes = task.imageRes,
-                                isCompleted = task.isCompleted,
-                                onStatusChange = { completed ->
-                                    if (!completed) {
-                                        // Move back to progress
-                                        historyTasks = historyTasks.filter { it.id != task.id }
-                                        progressTasks = progressTasks + task.copy(isCompleted = false)
-                                    }
+                        1 -> {
+                            if (historyTasks.isEmpty()) {
+                                Text("No tasks in history", color = colorResource(id = R.color.secondary_blue))
+                            } else {
+                                historyTasks.forEach { task ->
+                                    TaskListItem(
+                                        taskName = task.title,
+                                        taskDate = task.date,
+                                        imageRes = R.drawable.ic_launcher_background,
+                                        isCompleted = true,
+                                        onStatusChange = {
+                                            val newState = if (task.state == "Concluida") "Pendente" else "Concluida"
+                                            viewModel.updateTaskState(task.id!!, newState, homeId)
+                                        }
+                                    )
                                 }
-                            )
+                            }
                         }
                     }
                 }
+                Spacer(modifier = Modifier.height(40.dp)) // Spacer extra para não ficar por cima da ilha
             }
         }
-
         // Invite Resident Button
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
-                .padding(start = 16.dp, end = 16.dp, bottom = 140.dp),
+                .padding(start = 16.dp, end = 16.dp, bottom = 80.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             CustomButton(
                 text = "Invite Resident",
-                onClick = onInviteResidentClick
+                onClick = {
+                    Log.d("InviteResident", "Navegando para inviteResident/$homeId")
+                    navController?.navigate("inviteResident/$homeId")
+                }
             )
         }
-
         // Bottom Menu
         Box(
             modifier = Modifier
@@ -263,6 +267,9 @@ private fun TabButton(
 @Composable
 fun TasksMenuScreenPreview() {
     TasksMenuScreen(
+        homeId = 1,
+        homeMenuViewModel = viewModel(),
+        viewModel = viewModel(),
         onShoppingCartClick = { /* Shopping Cart */ },
         onAddTaskClick = { /* Add Task */ },
         onInviteResidentClick = { /* Invite Resident */ },

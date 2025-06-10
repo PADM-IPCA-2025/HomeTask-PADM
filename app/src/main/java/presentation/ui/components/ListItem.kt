@@ -38,7 +38,8 @@ fun ListItem(
     houseName: String,
     address: String,
     onEdit: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onClick: () -> Unit = {}
 ) {
     var offsetX by remember { mutableStateOf(0f) }
     val swipeableDistance = 350f
@@ -87,6 +88,7 @@ fun ListItem(
                 .offset { IntOffset(offsetX.roundToInt(), 0) }
                 .fillMaxSize()
                 .background(colorResource(id = R.color.listitem_blue))
+                .clickable { onClick() }
                 .pointerInput(Unit) {
                     detectHorizontalDragGestures(
                         onDragEnd = {

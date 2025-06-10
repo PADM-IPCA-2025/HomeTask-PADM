@@ -96,12 +96,18 @@ class TaskRepositoryImpl : TaskRepository {
     override suspend fun getTasksByHome(homeId: Int): Result<List<Task>> {
         return try {
             val response = api.getTasksByHome(homeId)
+            android.util.Log.d("TaskRepositoryImpl", "API response: isSuccessful=${response.isSuccessful}, body=${response.body()}")
             if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!.map { it.toDomain() })
+                val apiResponse = response.body()!!
+                val tasks = apiResponse.data.map { it.toDomain() }
+                android.util.Log.d("TaskRepositoryImpl", "Tasks mapeadas: ${tasks.joinToString { it.title + " (" + it.state + ")" }}")
+                Result.success(tasks)
             } else {
+                android.util.Log.e("TaskRepositoryImpl", "Get tasks by home failed: ${response.message()}")
                 Result.failure(Exception("Get tasks by home failed: ${response.message()}"))
             }
         } catch (e: Exception) {
+            android.util.Log.e("TaskRepositoryImpl", "Exception in getTasksByHome", e)
             Result.failure(e)
         }
     }

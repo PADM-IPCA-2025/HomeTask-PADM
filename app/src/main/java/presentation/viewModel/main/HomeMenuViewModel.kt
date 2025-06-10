@@ -281,4 +281,33 @@ class HomeMenuViewModel : ViewModel() {
             }
         }
     }
+
+    fun loadTasksByHome(homeId: Int) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true)
+            try {
+                val result = taskRepository.getTasksByHome(homeId)
+                result.fold(
+                    onSuccess = { tasks ->
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            tasks = tasks,
+                            errorMessage = null
+                        )
+                    },
+                    onFailure = { error ->
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            errorMessage = error.message ?: "Erro ao carregar tarefas da casa"
+                        )
+                    }
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = e.message ?: "Erro ao carregar tarefas da casa"
+                )
+            }
+        }
+    }
 }

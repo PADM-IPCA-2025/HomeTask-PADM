@@ -28,6 +28,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import pt.ipca.hometask.R
+import android.util.Log
 
 @Composable
 fun AddEditTaskScreen(
@@ -105,7 +106,7 @@ fun AddEditTaskScreen(
 
             // Task Name
             Text(
-                text = "Clean the kitchen",
+                text = "Task Name",
                 fontSize = 14.sp,
                 color = colorResource(id = R.color.secondary_blue).copy(alpha = 0.7f),
                 modifier = Modifier.padding(bottom = 8.dp)
@@ -120,7 +121,7 @@ fun AddEditTaskScreen(
 
             // Description
             Text(
-                text = "Clean the sink, table, chairs and floor",
+                text = "Task Description",
                 fontSize = 14.sp,
                 color = colorResource(id = R.color.secondary_blue).copy(alpha = 0.7f),
                 modifier = Modifier.padding(bottom = 8.dp)
@@ -135,7 +136,7 @@ fun AddEditTaskScreen(
 
             // Group Dropdown
             Text(
-                text = "Group 1",
+                text = "Task Responsible",
                 fontSize = 14.sp,
                 color = colorResource(id = R.color.secondary_blue).copy(alpha = 0.7f),
                 modifier = Modifier.padding(bottom = 8.dp)
@@ -148,24 +149,10 @@ fun AddEditTaskScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Status Dropdown
-            Text(
-                text = "To Do",
-                fontSize = 14.sp,
-                color = colorResource(id = R.color.secondary_blue).copy(alpha = 0.7f),
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            DropdownField(
-                value = selectedStatus,
-                placeholder = "Select status",
-                onClick = { showStatusDialog = true }
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
 
             // Date
             Text(
-                text = "11/02/2025",
+                text = "Date",
                 fontSize = 14.sp,
                 color = colorResource(id = R.color.secondary_blue).copy(alpha = 0.7f),
                 modifier = Modifier.padding(bottom = 8.dp)
@@ -189,6 +176,7 @@ fun AddEditTaskScreen(
             CustomButton(
                 text = if (isEditMode) "Save Changes" else "Create Task",
                 onClick = {
+                    Log.d("AddEditTaskScreen", "Criando task: name=$taskName, desc=$description, group=$selectedGroup, status=$selectedStatus, date=$selectedDate")
                     onSaveClick(taskName, description, selectedGroup, selectedStatus, selectedDate)
                 }
             )

@@ -39,7 +39,8 @@ fun HomeMenuScreen(
     viewModel: HomeMenuViewModel,
     onProfile: () -> Unit = {},
     onAddHome: () -> Unit = {},
-    onEditHome: (Int) -> Unit = {}
+    onEditHome: (Int) -> Unit = {},
+    onHomeClick: (Int) -> Unit = {}
 ) {
     val uiState = viewModel.uiState.value
 
@@ -64,12 +65,21 @@ fun HomeMenuScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Hello, ${uiState.currentUserName ?: "User"}",
-                    fontSize = 20.sp,
-                    color = colorResource(id = R.color.secondary_blue),
-                    fontFamily = FontFamily(Font(R.font.inter_bold))
-                )
+                Column {
+                    Text(
+                        text = "Hello,",
+                        fontSize = 16.sp,
+                        color = colorResource(id = R.color.secondary_blue),
+                        fontFamily = FontFamily(Font(R.font.inter_light))
+                    )
+                    Text(
+                        text = uiState.currentUserName ?: "User",
+                        fontSize = 20.sp,
+                        color = colorResource(id = R.color.secondary_blue),
+                        fontFamily = FontFamily(Font(R.font.inter_bold)),
+                        fontWeight = FontWeight.Bold
+                    )
+                }
                 if (uiState.userRoles?.contains("Manager", ignoreCase = true) == true) {
                     Icon(
                         imageVector = Icons.Default.AddCircleOutline,
@@ -118,11 +128,12 @@ fun HomeMenuScreen(
                             houseName = home.name,
                             address = home.address,
                             onEdit = { home.id?.let { onEditHome(it) } },
-                            onDelete = { 
+                            onDelete = {
                                 if (uiState.userRoles?.contains("Manager", ignoreCase = true) == true) {
                                     home.id?.let { viewModel.deleteHome(it) }
                                 }
-                            }
+                            },
+                            onClick = { home.id?.let { onHomeClick(it) } }
                         )
                         Spacer(modifier = Modifier.height(10.dp))
                     }

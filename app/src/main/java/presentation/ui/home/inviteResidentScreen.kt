@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun InviteResidentScreen(
     onBackClick: () -> Unit = {},
-    onSendClick: () -> Unit = {},
+    onSendClick: (String) -> Unit = {},
     onHomeClick: () -> Unit = {},
     onProfileClick: () -> Unit = {}
 ) {
@@ -58,7 +58,7 @@ fun InviteResidentScreen(
         ) {
             CustomButton(
                 text = "Send",
-                onClick = onSendClick
+                onClick = { onSendClick(emailOrPhone) }
             )
         }
 

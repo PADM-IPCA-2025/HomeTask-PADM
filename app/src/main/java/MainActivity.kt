@@ -6,6 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -30,6 +31,9 @@ import pt.ipca.hometask.presentation.ui.shopping.ShoppingListsScreenContainer
 import presentation.ui.splash.SplashScreen
 import pt.ipca.hometask.presentation.viewModel.main.HomeMenuViewModel
 import presentation.ui.home.AddEditHouseScreen
+import presentation.ui.task.TasksMenuScreen
+import presentation.ui.task.AddEditTaskScreen
+import presentation.ui.home.InviteResidentScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -214,6 +218,10 @@ fun NavigationRouter() {
                 onEditHome = { homeId ->
                     Log.d("NavigationRouter", "Navegando para editHome com ID: $homeId")
                     navController.navigate("editHome/$homeId")
+                },
+                onHomeClick = { homeId ->
+                    Log.d("NavigationRouter", "Navegando para tasks com ID da casa: $homeId")
+                    navController.navigate("tasks/$homeId")
                 }
             )
         }
@@ -245,6 +253,42 @@ fun NavigationRouter() {
                     navController.navigate("homeMenu") {
                         popUpTo("editProfile") { inclusive = true }
                     }
+                }
+            )
+        }
+
+        composable("tasks/{homeId}") { backStackEntry ->
+            val homeId = backStackEntry.arguments?.getString("homeId")?.toIntOrNull() ?: 0
+            val parentEntry = remember(backStackEntry) {
+                navController.getBackStackEntry("homeMenu")
+            }
+            val homeMenuViewModel: HomeMenuViewModel = viewModel(parentEntry)
+            Log.d("NavigationRouter", "Renderizando TasksMenuScreen para casa ID: $homeId")
+            TasksMenuScreen(
+                homeId = homeId,
+                homeMenuViewModel = homeMenuViewModel,
+                navController = navController,
+                onShoppingCartClick = {
+                    Log.d("NavigationRouter", "Navegando para shopping cart")
+                    navController.navigate("shoppingCart")
+                },
+                onAddTaskClick = {
+                    Log.d("NavigationRouter", "Navegando para add task")
+                    navController.navigate("addTask/$homeId")
+                },
+                onInviteResidentClick = {
+                    Log.d("NavigationRouter", "Navegando para invite resident")
+                    navController.navigate("inviteResident/$homeId")
+                },
+                onHomeClick = {
+                    Log.d("NavigationRouter", "Voltando para homeMenu")
+                    navController.navigate("homeMenu") {
+                        popUpTo("tasks/{homeId}") { inclusive = true }
+                    }
+                },
+                onProfileClick = {
+                    Log.d("NavigationRouter", "Navegando para editProfile desde tasks")
+                    navController.navigate("editProfile")
                 }
             )
         }
@@ -387,6 +431,47 @@ fun NavigationRouter() {
                     viewModel.createHome(name, address, zipCode)
                     navController.popBackStack() // Volta para o menu após criar
                 },
+                onHomeClick = { navController.navigate("homeMenu") },
+                onProfileClick = { navController.navigate("editProfile") }
+            )
+        }
+
+        composable("addTask/{homeId}") { backStackEntry ->
+            val homeId = backStackEntry.arguments?.getString("homeId")?.toIntOrNull() ?: 0
+            val parentEntry = remember(backStackEntry) {
+                navController.getBackStackEntry("homeMenu")
+            }
+            val homeMenuViewModel: HomeMenuViewModel = viewModel(parentEntry)
+            val userId = homeMenuViewModel.uiState.value.currentUserId
+            val addTaskViewModel: pt.ipca.hometask.presentation.viewModel.task.AddTaskViewModel = viewModel()
+            AddEditTaskScreen(
+                isEditMode = false,
+                onBackClick = { navController.popBackStack() },
+                onSaveClick = { title, description, group, status, date ->
+                    addTaskViewModel.createTask(
+                        title = title,
+                        description = description,
+                        group = group,
+                        status = status,
+                        date = date,
+                        homeId = homeId,
+                        userId = userId!!
+                    )
+                    navController.popBackStack()
+                },
+                onHomeClick = { navController.navigate("homeMenu") },
+                onProfileClick = { navController.navigate("editProfile") }
+            )
+        }
+
+        composable("inviteResident/{homeId}") { backStackEntry ->
+            val homeId = backStackEntry.arguments?.getString("homeId")?.toIntOrNull() ?: 0
+            Log.d("InviteResident", "Entrou na tela de inviteResident com homeId=$homeId")
+            val inviteResidentViewModel: pt.ipca.hometask.presentation.viewModel.home.InviteResidentViewModel = viewModel()
+            LaunchedEffect(Unit) { inviteResidentViewModel.loadAllUsers() }
+            InviteResidentScreen(
+                onBackClick = { navController.popBackStack() },
+                onSendClick = { email -> inviteResidentViewModel.inviteResidentByEmail(email, homeId) },
                 onHomeClick = { navController.navigate("homeMenu") },
                 onProfileClick = { navController.navigate("editProfile") }
             )

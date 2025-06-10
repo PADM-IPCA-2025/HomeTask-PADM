@@ -1,32 +1,36 @@
 package presentation.ui.home
 
-import android.util.Log
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import modules.TopBar
 import modules.CustomTextBox
 import modules.CustomButton
 import modules.BottomMenuBar
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Text
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.colorResource
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import pt.ipca.hometask.R
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.foundation.clickable
 import pt.ipca.hometask.presentation.viewModel.home.AddHouseViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.compose.runtime.collectAsState
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Text
+import androidx.compose.ui.res.colorResource
+import pt.ipca.hometask.R
+import androidx.compose.foundation.border
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.foundation.background
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddEditHouseScreen(
     isEditMode: Boolean = false,
@@ -40,151 +44,74 @@ fun AddEditHouseScreen(
     onProfileClick: () -> Unit = {},
     viewModel: AddHouseViewModel = viewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
     var name by remember { mutableStateOf(initialHomeName) }
     var address by remember { mutableStateOf(initialAddress) }
-    var selectedZipCodeId by remember { mutableStateOf<Int?>(null) }
-    var expanded by remember { mutableStateOf(false) }
+    val uiState by viewModel.uiState.collectAsState()
+    val secondaryBlue = colorResource(id = R.color.secondary_blue)
 
-    LaunchedEffect(Unit) {
-        viewModel.loadZipCodes()
-    }
-
-    LaunchedEffect(uiState) {
-        Log.d("AddEditHouseScreen", "UI State updated - Zip codes: ${uiState.zipCodes.size}")
-        uiState.zipCodes.forEach { zip ->
-            Log.d("AddEditHouseScreen", "Zip code: id=${zip.id}, postalCode=${zip.postalCode}, city=${zip.city}")
+    // Observar o estado de sucesso
+    LaunchedEffect(uiState.isSuccess) {
+        if (uiState.isSuccess) {
+            onBackClick() // Voltar para o HomeScreen
         }
-    }
-
-    LaunchedEffect(expanded) {
-        Log.d("AddEditHouseScreen", "Dropdown expanded: $expanded")
-        Log.d("AddEditHouseScreen", "Available zip codes: ${uiState.zipCodes.size}")
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp)
-                .padding(bottom = if (isEditMode) 220.dp else 140.dp)
-                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 32.dp)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Spacer(modifier = Modifier.height(32.dp))
             TopBar(
-                title = "Home Name",
+                title = "Add House",
                 onBackClick = onBackClick
             )
+            Spacer(modifier = Modifier.height(40.dp))
 
-            Spacer(modifier = Modifier.height(80.dp))
-
-            // Home Name
+            // Campo Nome da Casa
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.Start
             ) {
-                Text(
-                    text = "Home Name",
-                    color = colorResource(id = R.color.secondary_blue).copy(alpha = 0.7f),
-                    fontSize = 14.sp,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-
                 CustomTextBox(
                     value = name,
                     onValueChange = { name = it },
-                    placeholder = "Home name"
+                    placeholder = "Enter house name"
                 )
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Address
+            // Campo Endereço
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.Start
             ) {
-                Text(
-                    text = "Address",
-                    color = colorResource(id = R.color.secondary_blue).copy(alpha = 0.7f),
-                    fontSize = 14.sp,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-
                 CustomTextBox(
                     value = address,
                     onValueChange = { address = it },
-                    placeholder = "Address"
+                    placeholder = "Enter address"
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(60.dp))
 
-            // Zip Code Dropdown
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.Start
-            ) {
-                Text(
-                    text = "Zip Code",
-                    color = colorResource(id = R.color.secondary_blue).copy(alpha = 0.7f),
-                    fontSize = 14.sp,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-                Box {
-                    val selectedZipCode = uiState.zipCodes.find { it.id == selectedZipCodeId }
-                    OutlinedTextField(
-                        value = selectedZipCode?.postalCode ?: "",
-                        onValueChange = {},
-                        readOnly = true,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { expanded = true },
-                        placeholder = { Text("Select Zip Code") },
-                        trailingIcon = {
-                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-                        }
-                    )
-
-                    DropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        uiState.zipCodes.forEach { zipCode ->
-                            DropdownMenuItem(
-                                text = { Text(zipCode.postalCode) },
-                                onClick = {
-                                    selectedZipCodeId = zipCode.id
-                                    expanded = false
-                                }
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        // Buttons
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter)
-                .padding(start = 16.dp, end = 16.dp, bottom = 140.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
+            // Botão Save
             CustomButton(
                 text = "Save",
-                onClick = {
-                    selectedZipCodeId?.let { zipId ->
-                        viewModel.createHome(name, address, zipId.toString())
-                    }
+                onClick = { 
+                    viewModel.createHome(name, address, "1")
                 }
             )
 
             if (isEditMode) {
+                Spacer(modifier = Modifier.height(16.dp))
+                // Botão Remove
                 CustomButton(
-                    text = "Remove Resident",
+                    text = "Remove House",
                     onClick = onRemoveClick,
                     isDanger = true
                 )
@@ -205,15 +132,14 @@ fun AddEditHouseScreen(
     }
 }
 
+@Preview(showBackground = true)
 @Composable
 fun AddEditHouseScreenPreview() {
-    Column {
-        AddEditHouseScreen(
-            isEditMode = false,
-            onBackClick = { },
-            onSaveClick = { _, _, _ -> },
-            onHomeClick = { },
-            onProfileClick = { }
-        )
-    }
+    AddEditHouseScreen(
+        onBackClick = { },
+        onSaveClick = { _, _, _ -> },
+        onRemoveClick = { },
+        onHomeClick = { },
+        onProfileClick = { }
+    )
 }

@@ -80,12 +80,8 @@ class HomeRepositoryImpl : HomeRepository {
                     val homes = apiResponse.data
                     android.util.Log.d("HomeRepositoryImpl", "Found ${homes.size} homes")
 
-                    // Filtrar casas que pertencem ao usuário
-                    val userHomes = homes.filter { it.userId == userId }
-                    android.util.Log.d("HomeRepositoryImpl", "Found ${userHomes.size} homes for user $userId")
-
                     // Converter todas as casas para o modelo de domínio
-                    val domainHomes = userHomes.map { homeDto ->
+                    val domainHomes = homes.map { homeDto ->
                         val domainHome = homeDto.toDomain()
                         android.util.Log.d("HomeRepositoryImpl", "Returning home: ${domainHome.name}")
                         domainHome

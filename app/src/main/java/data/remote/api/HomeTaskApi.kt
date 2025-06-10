@@ -39,7 +39,7 @@ interface HomeTaskApi {
     suspend fun getTasksByHome(@Path("homeId") homeId: Int): Response<List<TaskDto>>
 
     @GET("api/tasks/tasks/user/{userId}")
-    suspend fun getTasksByUser(@Path("userId") userId: Int): Response<List<TaskDto>>
+    suspend fun getTasksByUser(@Path("userId") userId: Int): Response<ApiResponse<List<TaskDto>>>
 
     @PUT("api/tasks/tasks/{id}")
     suspend fun updateTask(@Path("id") id: Int, @Body task: TaskDto): Response<TaskDto>

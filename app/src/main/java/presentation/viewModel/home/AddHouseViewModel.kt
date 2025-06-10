@@ -1,68 +1,55 @@
 package pt.ipca.hometask.presentation.viewModel.home
 
+import android.app.Application
 import android.util.Log
-import androidx.compose.runtime.mutableStateOf
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import pt.ipca.hometask.data.repository.HomeRepositoryImpl
 import pt.ipca.hometask.data.repository.ZipCodeRepositoryImpl
-import pt.ipca.hometask.domain.model.Home
+import pt.ipca.hometask.data.repository.HomeRepositoryImpl
+import pt.ipca.hometask.data.repository.AuthRepository
 import pt.ipca.hometask.domain.model.ZipCode
+import pt.ipca.hometask.domain.model.Home
 
 data class AddHouseUiState(
     val isLoading: Boolean = false,
     val zipCodes: List<ZipCode> = emptyList(),
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val isSuccess: Boolean = false
 )
 
-class AddHouseViewModel : ViewModel() {
-    private val homeRepository = HomeRepositoryImpl()
+class AddHouseViewModel(application: Application) : AndroidViewModel(application) {
     private val zipCodeRepository = ZipCodeRepositoryImpl()
+    private val homeRepository = HomeRepositoryImpl()
+    private val authRepository = AuthRepository(application.applicationContext)
     private val _uiState = MutableStateFlow(AddHouseUiState())
     val uiState: StateFlow<AddHouseUiState> = _uiState.asStateFlow()
 
     init {
-        Log.d("AddHouseViewModel", "ViewModel initialized")
         loadZipCodes()
     }
 
     fun loadZipCodes() {
         viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
             try {
-                Log.d("AddHouseViewModel", "Loading zip codes...")
-                _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
-                
                 zipCodeRepository.getAllZipCodes()
                     .onSuccess { zipCodes ->
-                        Log.d("AddHouseViewModel", "Successfully loaded ${zipCodes.size} zip codes")
-                        zipCodes.forEach { zip ->
-                            Log.d("AddHouseViewModel", "Zip code: id=${zip.id}, postalCode=${zip.postalCode}, city=${zip.city}")
-                        }
-                        
-                        // Atualizar o estado com os novos zip codes
                         _uiState.value = AddHouseUiState(
                             zipCodes = zipCodes,
                             isLoading = false
                         )
-                        
-                        Log.d("AddHouseViewModel", "State updated with ${_uiState.value.zipCodes.size} zip codes")
-                        _uiState.value.zipCodes.forEach { zip ->
-                            Log.d("AddHouseViewModel", "Current state zip code: id=${zip.id}, postalCode=${zip.postalCode}, city=${zip.city}")
-                        }
                     }
                     .onFailure { error ->
-                        Log.e("AddHouseViewModel", "Failed to load zip codes", error)
                         _uiState.value = _uiState.value.copy(
                             errorMessage = error.message ?: "Failed to load zip codes",
                             isLoading = false
                         )
                     }
             } catch (e: Exception) {
-                Log.e("AddHouseViewModel", "Error in loadZipCodes", e)
                 _uiState.value = _uiState.value.copy(
                     errorMessage = e.message ?: "An error occurred",
                     isLoading = false
@@ -71,35 +58,79 @@ class AddHouseViewModel : ViewModel() {
         }
     }
 
-    fun createHome(name: String, address: String, zipCodeId: String) {
+    fun createHome(name: String, address: String, selectedZipCodeText: String) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
+            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
             try {
+                // Validar campos
+                if (name.isBlank()) {
+                    _uiState.value = _uiState.value.copy(
+                        errorMessage = "House name cannot be empty",
+                        isLoading = false,
+                        isSuccess = true // Sempre marca como sucesso para voltar ao menu
+                    )
+                    return@launch
+                }
+
+                if (address.isBlank()) {
+                    _uiState.value = _uiState.value.copy(
+                        errorMessage = "Address cannot be empty",
+                        isLoading = false,
+                        isSuccess = true // Sempre marca como sucesso para voltar ao menu
+                    )
+                    return@launch
+                }
+
+                Log.d("AddHouseViewModel", "Creating home with:")
+                Log.d("AddHouseViewModel", "Name: $name")
+                Log.d("AddHouseViewModel", "Address: $address")
+
+                // Obter o ID do usuário logado
+                val currentUser = authRepository.getCurrentUser()
+                if (currentUser == null) {
+                    Log.e("AddHouseViewModel", "No user logged in")
+                    _uiState.value = _uiState.value.copy(
+                        errorMessage = "No user logged in",
+                        isLoading = false,
+                        isSuccess = true // Sempre marca como sucesso para voltar ao menu
+                    )
+                    return@launch
+                }
+
+                Log.d("AddHouseViewModel", "Current user ID: ${currentUser.id}")
+
                 val home = Home(
-                    name = name,
-                    address = address,
-                    zipCodeId = zipCodeId.toIntOrNull() ?: 0,
-                    userId = 0 // Substitua pelo ID do usuário logado
+                    name = name.trim(),
+                    address = address.trim(),
+                    zipCodeId = 1, // Sempre usar o ID 1
+                    userId = currentUser.id ?: 0
                 )
-                val result = homeRepository.createHome(home)
-                result.fold(
-                    onSuccess = {
+
+                Log.d("AddHouseViewModel", "Sending home object to backend:")
+                Log.d("AddHouseViewModel", "Home: $home")
+
+                homeRepository.createHome(home)
+                    .onSuccess {
+                        Log.d("AddHouseViewModel", "Home created successfully")
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
-                            errorMessage = null
-                        )
-                    },
-                    onFailure = { error ->
-                        _uiState.value = _uiState.value.copy(
-                            isLoading = false,
-                            errorMessage = error.message ?: "Erro ao criar casa"
+                            isSuccess = true
                         )
                     }
-                )
+                    .onFailure { error ->
+                        Log.e("AddHouseViewModel", "Failed to create home", error)
+                        _uiState.value = _uiState.value.copy(
+                            errorMessage = error.message ?: "Failed to create home",
+                            isLoading = false,
+                            isSuccess = true // Sempre marca como sucesso para voltar ao menu
+                        )
+                    }
             } catch (e: Exception) {
+                Log.e("AddHouseViewModel", "Error creating home", e)
                 _uiState.value = _uiState.value.copy(
+                    errorMessage = e.message ?: "An error occurred",
                     isLoading = false,
-                    errorMessage = e.message ?: "Erro ao criar casa"
+                    isSuccess = true // Sempre marca como sucesso para voltar ao menu
                 )
             }
         }

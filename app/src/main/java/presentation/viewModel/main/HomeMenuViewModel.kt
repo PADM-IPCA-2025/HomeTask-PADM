@@ -8,6 +8,8 @@ import pt.ipca.hometask.data.repository.HomeRepositoryImpl
 import pt.ipca.hometask.data.repository.TaskRepositoryImpl
 import pt.ipca.hometask.domain.model.Home
 import pt.ipca.hometask.domain.model.Task
+import pt.ipca.hometask.domain.repository.HomeRepository
+import pt.ipca.hometask.domain.repository.TaskRepository
 
 data class HomeMenuUiState(
     val isLoading: Boolean = false,
@@ -22,14 +24,14 @@ data class HomeMenuUiState(
 )
 
 class HomeMenuViewModel : ViewModel() {
-    private val homeRepository = HomeRepositoryImpl()
-    private val taskRepository = TaskRepositoryImpl()
+    private val homeRepository: HomeRepository = HomeRepositoryImpl()
+    private val taskRepository: TaskRepository = TaskRepositoryImpl()
     private val _uiState = mutableStateOf(HomeMenuUiState())
     val uiState = _uiState
 
     fun updateUserState(isLoggedIn: Boolean, userId: Int?, userName: String?, roles: String?) {
-        if (_uiState.value.isUserLoggedIn != isLoggedIn || 
-            _uiState.value.currentUserId != userId || 
+        if (_uiState.value.isUserLoggedIn != isLoggedIn ||
+            _uiState.value.currentUserId != userId ||
             _uiState.value.currentUserName != userName ||
             _uiState.value.userRoles != roles) {
             _uiState.value = _uiState.value.copy(
@@ -45,10 +47,21 @@ class HomeMenuViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
             try {
+                android.util.Log.d("HomeMenuViewModel", "Loading homes for user ID: $userId")
                 val result = homeRepository.getHomeByUserId(userId)
                 result.fold(
                     onSuccess = { homes ->
                         android.util.Log.d("HomeMenuViewModel", "Successfully loaded ${homes.size} homes")
+                        homes.forEach { home ->
+                            android.util.Log.d("HomeMenuViewModel", """
+                                Home details:
+                                - ID: ${home.id}
+                                - Name: ${home.name}
+                                - Address: ${home.address}
+                                - ZipCode ID: ${home.zipCodeId}
+                                - User ID: ${home.userId}
+                            """.trimIndent())
+                        }
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
                             homes = homes,
@@ -73,10 +86,110 @@ class HomeMenuViewModel : ViewModel() {
         }
     }
 
+    fun loadUserTasks(userId: Int) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true)
+            try {
+                android.util.Log.d("HomeMenuViewModel", "Loading tasks for user ID: $userId")
+                val result = taskRepository.getTasksByUser(userId)
+                result.fold(
+                    onSuccess = { tasks ->
+                        android.util.Log.d("HomeMenuViewModel", "Successfully loaded ${tasks.size} tasks")
+                        tasks.forEach { task ->
+                            android.util.Log.d("HomeMenuViewModel", """
+                                Task details:
+                                - ID: ${task.id}
+                                - Title: ${task.title}
+                                - Description: ${task.description}
+                                - Date: ${task.date}
+                                - State: ${task.state}
+                                - Home ID: ${task.homeId}
+                                - User ID: ${task.userId}
+                                - Category ID: ${task.taskCategoryId}
+                            """.trimIndent())
+                        }
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            tasks = tasks,
+                            errorMessage = null
+                        )
+                    },
+                    onFailure = { error ->
+                        android.util.Log.e("HomeMenuViewModel", "Error loading tasks", error)
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            errorMessage = error.message ?: "Erro ao carregar tarefas"
+                        )
+                    }
+                )
+            } catch (e: Exception) {
+                android.util.Log.e("HomeMenuViewModel", "Exception loading tasks", e)
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = e.message ?: "Erro ao carregar tarefas"
+                )
+            }
+        }
+    }
+
+    fun updateTaskState(taskId: Int, newState: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true)
+            try {
+                android.util.Log.d("HomeMenuViewModel", "Updating task $taskId state to $newState")
+                
+                // Encontrar a task atual
+                val currentTask = _uiState.value.tasks.find { it.id == taskId }
+                if (currentTask == null) {
+                    android.util.Log.e("HomeMenuViewModel", "Task $taskId not found")
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        errorMessage = "Task not found"
+                    )
+                    return@launch
+                }
+
+                // Criar uma cópia da task com o novo estado
+                val updatedTask = currentTask.copy(state = newState)
+                
+                // Atualizar a task no backend
+                val result = taskRepository.updateTask(taskId, updatedTask)
+                result.fold(
+                    onSuccess = { task ->
+                        android.util.Log.d("HomeMenuViewModel", "Successfully updated task state")
+                        // Atualizar a lista de tasks
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            tasks = _uiState.value.tasks.map { 
+                                if (it.id == taskId) task else it 
+                            },
+                            errorMessage = null
+                        )
+                        // Recarregar todas as tasks após atualizar
+                        loadUserTasks(_uiState.value.currentUserId!!)
+                    },
+                    onFailure = { error ->
+                        android.util.Log.e("HomeMenuViewModel", "Error updating task state", error)
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            errorMessage = error.message ?: "Erro ao atualizar estado da tarefa"
+                        )
+                    }
+                )
+            } catch (e: Exception) {
+                android.util.Log.e("HomeMenuViewModel", "Exception updating task state", e)
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = e.message ?: "Erro ao atualizar estado da tarefa"
+                )
+            }
+        }
+    }
+
     fun createHome(name: String, address: String, zipCode: String) {
-        if (_uiState.value.userRoles?.contains("Gestor", ignoreCase = true) != true) {
+        if (_uiState.value.userRoles?.contains("Manager", ignoreCase = true) != true) {
             _uiState.value = _uiState.value.copy(
-                errorMessage = "Apenas gestores podem criar casas"
+                errorMessage = "Only managers can create houses"
             )
             return
         }
@@ -103,14 +216,14 @@ class HomeMenuViewModel : ViewModel() {
                     onFailure = { error ->
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
-                            errorMessage = error.message ?: "Erro ao criar casa"
+                            errorMessage = error.message ?: "Error creating house"
                         )
                     }
                 )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    errorMessage = e.message ?: "Erro ao criar casa"
+                    errorMessage = e.message ?: "Error creating house"
                 )
             }
         }
@@ -125,9 +238,9 @@ class HomeMenuViewModel : ViewModel() {
     }
 
     fun deleteHome(homeId: Int) {
-        if (_uiState.value.userRoles?.contains("Gestor", ignoreCase = true) != true) {
+        if (_uiState.value.userRoles?.contains("Manager", ignoreCase = true) != true) {
             _uiState.value = _uiState.value.copy(
-                errorMessage = "Apenas gestores podem excluir casas",
+                errorMessage = "Only managers can delete houses",
                 showErrorPopup = true
             )
             return
@@ -145,11 +258,13 @@ class HomeMenuViewModel : ViewModel() {
                             errorMessage = null,
                             showErrorPopup = false
                         )
+                        // Recarregar a lista de casas após a exclusão
+                        loadUserHomes(_uiState.value.currentUserId!!)
                     },
                     onFailure = { error ->
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
-                            errorMessage = error.message ?: "Erro ao excluir casa",
+                            errorMessage = error.message ?: "Error deleting house",
                             showErrorPopup = true
                         )
                     }
@@ -157,37 +272,8 @@ class HomeMenuViewModel : ViewModel() {
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    errorMessage = e.message ?: "Erro ao excluir casa",
+                    errorMessage = e.message ?: "Error deleting house",
                     showErrorPopup = true
-                )
-            }
-        }
-    }
-
-    fun loadUserTasks(userId: Int) {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
-            try {
-                val result = taskRepository.getTasksByUserId(userId)
-                result.fold(
-                    onSuccess = { tasks ->
-                        _uiState.value = _uiState.value.copy(
-                            isLoading = false,
-                            tasks = tasks,
-                            errorMessage = null
-                        )
-                    },
-                    onFailure = { error ->
-                        _uiState.value = _uiState.value.copy(
-                            isLoading = false,
-                            errorMessage = error.message ?: "Erro ao carregar tarefas"
-                        )
-                    }
-                )
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    errorMessage = e.message ?: "Erro ao carregar tarefas"
                 )
             }
         }

@@ -13,23 +13,25 @@ class ZipCodeRepositoryImpl {
         return try {
             Log.d("ZipCodeRepository", "Fetching zip codes from API...")
             val response = api.getAllZipCodes()
-            Log.d("ZipCodeRepository", "API Response code: ${response.code()}")
-            Log.d("ZipCodeRepository", "API Response headers: ${response.headers()}")
-            Log.d("ZipCodeRepository", "API Response raw: ${response.raw()}")
-
+            
             if (response.isSuccessful) {
                 val responseBody = response.body()
-                Log.d("ZipCodeRepository", "Response body: $responseBody")
-                Log.d("ZipCodeRepository", "Response success: ${responseBody?.success}")
-                Log.d("ZipCodeRepository", "Response message: ${responseBody?.message}")
-                Log.d("ZipCodeRepository", "Response data: ${responseBody?.data}")
-
                 if (responseBody?.success == true) {
-                    val zipCodes = responseBody.data?.mapNotNull { it.toDomain() } ?: emptyList()
-                    Log.d("ZipCodeRepository", "Converted ${zipCodes.size} zip codes")
+                    val zipCodes = responseBody.data?.mapNotNull { dto ->
+                        dto.id?.let { id ->
+                            ZipCode(
+                                id = id,
+                                postalCode = dto.postalCode,
+                                city = dto.city
+                            )
+                        }
+                    } ?: emptyList()
+                    
+                    Log.d("ZipCodeRepository", "Successfully loaded ${zipCodes.size} zip codes")
                     zipCodes.forEach { zip ->
                         Log.d("ZipCodeRepository", "Zip code: id=${zip.id}, postalCode=${zip.postalCode}, city=${zip.city}")
                     }
+                    
                     Result.success(zipCodes)
                 } else {
                     Log.e("ZipCodeRepository", "API returned success=false: ${responseBody?.message}")

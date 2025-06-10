@@ -1,13 +1,17 @@
 package pt.ipca.hometask.data.repository
 
+import android.util.Log
 import pt.ipca.hometask.data.remote.api.HomeTaskApi
 import pt.ipca.hometask.data.remote.model.TaskDto
 import pt.ipca.hometask.domain.model.Task
 import pt.ipca.hometask.domain.repository.TaskRepository
 import pt.ipca.hometask.network.RetrofitClient
+import java.text.SimpleDateFormat
+import java.util.*
 
 class TaskRepositoryImpl : TaskRepository {
     private val api: HomeTaskApi = RetrofitClient.homeTaskApi
+    private val dateFormat = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault())
 
     private fun TaskDto.toDomain(): Task {
         return Task(
@@ -25,7 +29,7 @@ class TaskRepositoryImpl : TaskRepository {
 
     private fun Task.toDto(): TaskDto {
         return TaskDto(
-            id = id,
+            id = null,
             title = title,
             description = description,
             data = date, // Domain usa "date", API espera "data"
@@ -91,26 +95,58 @@ class TaskRepositoryImpl : TaskRepository {
 
     override suspend fun getTasksByUser(userId: Int): Result<List<Task>> {
         return try {
+            Log.d("TaskRepositoryImpl", "Getting tasks for user $userId")
             val response = api.getTasksByUser(userId)
-            if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!.map { it.toDomain() })
+            Log.d("TaskRepositoryImpl", "API response: ${response.isSuccessful}, body: ${response.body()}")
+
+            if (response.isSuccessful) {
+                val apiResponse = response.body()
+                if (apiResponse?.success == true) {
+                    val tasks = apiResponse.data
+                    Log.d("TaskRepositoryImpl", "Found ${tasks.size} tasks")
+
+                    // Converter todas as tasks para o modelo de domínio
+                    val domainTasks = tasks.map { taskDto ->
+                        val domainTask = taskDto.toDomain()
+                        Log.d("TaskRepositoryImpl", "Returning task: ${domainTask.title}")
+                        domainTask
+                    }
+
+                    Result.success(domainTasks)
+                } else {
+                    Log.e("TaskRepositoryImpl", "API returned error: ${apiResponse?.message}")
+                    Result.failure(Exception(apiResponse?.message ?: "Unknown error"))
+                }
             } else {
-                Result.failure(Exception("Get tasks by user failed: ${response.message()}"))
+                Log.e("TaskRepositoryImpl", "API call failed: ${response.code()}")
+                Result.failure(Exception("Failed to get tasks: ${response.code()}"))
             }
         } catch (e: Exception) {
+            Log.e("TaskRepositoryImpl", "Error getting tasks", e)
             Result.failure(e)
         }
     }
 
     override suspend fun updateTask(id: Int, task: Task): Result<Task> {
         return try {
-            val response = api.updateTask(id, task.toDto())
+            Log.d("TaskRepositoryImpl", "Updating task $id with state ${task.state}")
+            
+            // Criar uma cópia da task com a data formatada
+            val taskWithFormattedDate = task.copy(
+                date = dateFormat.format(dateFormat.parse(task.date) ?: Date())
+            )
+            
+            val response = api.updateTask(id, taskWithFormattedDate.toDto())
+            Log.d("TaskRepositoryImpl", "Update response: ${response.isSuccessful}, body: ${response.body()}")
+
             if (response.isSuccessful && response.body() != null) {
                 Result.success(response.body()!!.toDomain())
             } else {
+                Log.e("TaskRepositoryImpl", "Update failed: ${response.message()}")
                 Result.failure(Exception("Update task failed: ${response.message()}"))
             }
         } catch (e: Exception) {
+            Log.e("TaskRepositoryImpl", "Error updating task", e)
             Result.failure(e)
         }
     }

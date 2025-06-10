@@ -22,7 +22,7 @@ import pt.ipca.hometask.presentation.ui.auth.RecoverPassword
 import pt.ipca.hometask.presentation.ui.auth.RegisterScreen
 import pt.ipca.hometask.presentation.ui.auth.VerificationCode
 import pt.ipca.hometask.presentation.ui.auth.VerificationCodeForgotPassword
-import presentation.ui.main.HomeMenu
+import presentation.ui.main.HomeMenuScreen
 import presentation.ui.profile.EditProfilePage
 import pt.ipca.hometask.presentation.ui.shopping.AddItemScreen
 import pt.ipca.hometask.presentation.ui.shopping.ShoppingListScreenContainer
@@ -201,15 +201,11 @@ fun NavigationRouter() {
                 roles = authRepository.getUserRoles()
             )
 
-            HomeMenu(
+            HomeMenuScreen(
                 viewModel = viewModel,
                 onProfile = {
                     Log.d("NavigationRouter", "Navegando para editProfile")
                     navController.navigate("editProfile")
-                },
-                onShoppingLists = {
-                    Log.d("NavigationRouter", "Navegando para shoppingLists")
-                    navController.navigate("shoppingLists")
                 },
                 onAddHome = {
                     Log.d("NavigationRouter", "Navegando para addHome")

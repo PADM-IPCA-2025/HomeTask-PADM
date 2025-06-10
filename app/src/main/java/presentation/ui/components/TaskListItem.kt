@@ -69,7 +69,7 @@ fun TaskListItem(
 
             RadioButton(
                 selected = isCompleted,
-                onClick = { onStatusChange(!isCompleted) },
+                onClick = { onStatusChange(true) },
                 colors = RadioButtonDefaults.colors(
                     selectedColor = Color.White,
                     unselectedColor = Color.White

@@ -11,14 +11,21 @@ import java.util.*
 
 class TaskRepositoryImpl : TaskRepository {
     private val api: HomeTaskApi = RetrofitClient.homeTaskApi
-    private val dateFormat = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault())
+    private val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+    private val apiDateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
 
     private fun TaskDto.toDomain(): Task {
         return Task(
             id = id,
             title = title,
             description = description,
-            date = data, // API usa "data", domain usa "date"
+            date = try {
+                // Converter da data da API (yyyy-MM-dd) para o formato do app (dd/MM/yyyy)
+                val date = apiDateFormat.parse(data)
+                dateFormat.format(date)
+            } catch (e: Exception) {
+                data // Se falhar, retorna a data original
+            },
             state = state,
             photo = photo,
             homeId = homeId,
@@ -29,10 +36,16 @@ class TaskRepositoryImpl : TaskRepository {
 
     private fun Task.toDto(): TaskDto {
         return TaskDto(
-            id = null,
+            id = null,  // Sempre enviar null para atualização
             title = title,
             description = description,
-            data = date, // Domain usa "date", API espera "data"
+            data = try {
+                // Converter da data do app (dd/MM/yyyy) para o formato da API (yyyy-MM-dd)
+                val date = dateFormat.parse(date)
+                apiDateFormat.format(date)
+            } catch (e: Exception) {
+                date // Se falhar, retorna a data original
+            },
             state = state,
             photo = photo,
             homeId = homeId,

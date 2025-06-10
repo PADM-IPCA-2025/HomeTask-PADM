@@ -2,13 +2,14 @@ package presentation.ui.main
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.AddCircleOutline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,81 +27,72 @@ import androidx.compose.ui.unit.sp
 import modules.TaskListItem
 import modules.CustomButton
 import modules.BottomMenuBar
+import modules.ListItem
 import pt.ipca.hometask.R
 import pt.ipca.hometask.presentation.viewModel.main.HomeMenuViewModel
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun HomeMenuScreen(
     viewModel: HomeMenuViewModel,
-    onShoppingCartClick: () -> Unit = {},
-    onAddTaskClick: () -> Unit = {},
-    onInviteResidentClick: () -> Unit = {},
-    onHomeClick: () -> Unit = {},
-    onProfileClick: () -> Unit = {}
+    onProfile: () -> Unit = {},
+    onAddHome: () -> Unit = {},
+    onEditHome: (Int) -> Unit = {}
 ) {
-    val uiState by viewModel.uiState
+    val uiState = viewModel.uiState.value
+
+    LaunchedEffect(Unit) {
+        viewModel.loadUserHomes(uiState.currentUserId ?: 0)
+        viewModel.loadUserTasks(uiState.currentUserId ?: 0)
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp)
-                .padding(bottom = 220.dp)
-                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 32.dp)
+                .padding(bottom = 70.dp)
         ) {
-            // Top Bar
+            Spacer(modifier = Modifier.height(60.dp))
+
+            // Top Row: Hello, nome + botão adicionar casa
             Row(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp),
+                    .fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Home Menu",
-                    fontSize = 24.sp,
-                    fontFamily = FontFamily(Font(R.font.poppins_regular)),
-                    fontWeight = FontWeight.Bold,
-                    color = colorResource(id = R.color.main_blue)
+                    text = "Hello, ${uiState.currentUserName ?: "User"}",
+                    fontSize = 20.sp,
+                    color = colorResource(id = R.color.secondary_blue),
+                    fontFamily = FontFamily(Font(R.font.inter_bold))
                 )
-
-                Row {
+                if (uiState.userRoles?.contains("Manager", ignoreCase = true) == true) {
                     Icon(
-                        imageVector = Icons.Default.ShoppingCart,
-                        contentDescription = "Shopping Cart",
+                        imageVector = Icons.Default.AddCircleOutline,
+                        contentDescription = "Add Home",
                         modifier = Modifier
                             .size(24.dp)
-                            .clickable { onShoppingCartClick() },
-                        tint = colorResource(id = R.color.secondary_blue)
-                    )
-
-                    Spacer(modifier = Modifier.width(16.dp))
-
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Add Task",
-                        modifier = Modifier
-                            .size(24.dp)
-                            .clickable { onAddTaskClick() },
+                            .clickable { onAddHome() },
                         tint = colorResource(id = R.color.secondary_blue)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(40.dp))
 
-            // Tasks Section
             Text(
-                text = "Tasks",
+                text = "My Homes:",
                 fontSize = 20.sp,
-                fontFamily = FontFamily(Font(R.font.poppins_regular)),
-                fontWeight = FontWeight.Bold,
-                color = colorResource(id = R.color.main_blue)
+                color = colorResource(id = R.color.secondary_blue),
+                fontFamily = FontFamily(Font(R.font.inter_bold))
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Tasks List
             Column(
                 modifier = Modifier
                     .height(240.dp)
@@ -115,8 +107,60 @@ fun HomeMenuScreen(
                             color = colorResource(id = R.color.secondary_blue)
                         )
                     }
+                } else if (uiState.homes.isEmpty()) {
+                    Text(
+                        text = "Você ainda não tem casas cadastradas",
+                        color = colorResource(id = R.color.secondary_blue)
+                    )
                 } else {
-                    val pendingTasks = uiState.tasks.filter { it.state != "Concluida" }
+                    uiState.homes.forEach { home ->
+                        ListItem(
+                            houseName = home.name,
+                            address = home.address,
+                            onEdit = { home.id?.let { onEditHome(it) } },
+                            onDelete = { 
+                                if (uiState.userRoles?.contains("Manager", ignoreCase = true) == true) {
+                                    home.id?.let { viewModel.deleteHome(it) }
+                                }
+                            }
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(40.dp))
+
+            Text(
+                text = "My Tasks:",
+                fontSize = 20.sp,
+                color = colorResource(id = R.color.secondary_blue),
+                fontFamily = FontFamily(Font(R.font.inter_bold))
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Column(
+                modifier = Modifier
+                    .height(160.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                if (uiState.isLoading) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            color = colorResource(id = R.color.secondary_blue)
+                        )
+                    }
+                } else if (uiState.tasks.isEmpty()) {
+                    Text(
+                        text = "Nenhuma tarefa disponível",
+                        color = colorResource(id = R.color.secondary_blue)
+                    )
+                } else {
+                    val pendingTasks = uiState.tasks.filter { it.state == "Pendente" }
                     if (pendingTasks.isEmpty()) {
                         Text(
                             text = "Nenhuma tarefa pendente",
@@ -128,10 +172,16 @@ fun HomeMenuScreen(
                                 taskName = task.title,
                                 taskDate = task.date,
                                 imageRes = R.drawable.logotipo,
-                                isCompleted = task.state == "Concluida",
+                                isCompleted = false,
                                 onStatusChange = { isCompleted ->
                                     task.id?.let { id ->
-                                        viewModel.updateTaskState(id, if (isCompleted) "Concluida" else "Pendente")
+                                        android.util.Log.d("HomeMenuScreen", "Atualizando tarefa $id para Concluida")
+                                        viewModel.updateTaskState(id, "Concluida")
+                                        // Aguardar um momento antes de recarregar para garantir que a atualização foi processada
+                                        MainScope().launch {
+                                            delay(500)
+                                            viewModel.loadUserTasks(uiState.currentUserId ?: 0)
+                                        }
                                     }
                                 }
                             )
@@ -149,8 +199,8 @@ fun HomeMenuScreen(
                 .fillMaxWidth()
         ) {
             BottomMenuBar(
-                onHomeClick = onHomeClick,
-                onProfileClick = onProfileClick
+                onHomeClick = { /* Já estamos na tela home */ },
+                onProfileClick = onProfile
             )
         }
     }

@@ -136,12 +136,12 @@ class HomeMenuViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
             try {
-                android.util.Log.d("HomeMenuViewModel", "Updating task $taskId state to $newState")
+                android.util.Log.d("HomeMenuViewModel", "Iniciando atualização da tarefa $taskId para estado $newState")
                 
                 // Encontrar a task atual
                 val currentTask = _uiState.value.tasks.find { it.id == taskId }
                 if (currentTask == null) {
-                    android.util.Log.e("HomeMenuViewModel", "Task $taskId not found")
+                    android.util.Log.e("HomeMenuViewModel", "Task $taskId não encontrada")
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         errorMessage = "Task not found"
@@ -149,6 +149,8 @@ class HomeMenuViewModel : ViewModel() {
                     return@launch
                 }
 
+                android.util.Log.d("HomeMenuViewModel", "Task encontrada: ${currentTask.title}, estado atual: ${currentTask.state}")
+                
                 // Criar uma cópia da task com o novo estado
                 val updatedTask = currentTask.copy(state = newState)
                 
@@ -156,20 +158,21 @@ class HomeMenuViewModel : ViewModel() {
                 val result = taskRepository.updateTask(taskId, updatedTask)
                 result.fold(
                     onSuccess = { task ->
-                        android.util.Log.d("HomeMenuViewModel", "Successfully updated task state")
+                        android.util.Log.d("HomeMenuViewModel", "Task atualizada com sucesso: ${task.title}, novo estado: ${task.state}")
                         // Atualizar a lista de tasks
+                        val updatedTasks = _uiState.value.tasks.map { 
+                            if (it.id == taskId) task else it 
+                        }
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
-                            tasks = _uiState.value.tasks.map { 
-                                if (it.id == taskId) task else it 
-                            },
+                            tasks = updatedTasks,
                             errorMessage = null
                         )
                         // Recarregar todas as tasks após atualizar
                         loadUserTasks(_uiState.value.currentUserId!!)
                     },
                     onFailure = { error ->
-                        android.util.Log.e("HomeMenuViewModel", "Error updating task state", error)
+                        android.util.Log.e("HomeMenuViewModel", "Erro ao atualizar task: ${error.message}")
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
                             errorMessage = error.message ?: "Erro ao atualizar estado da tarefa"
@@ -177,7 +180,7 @@ class HomeMenuViewModel : ViewModel() {
                     }
                 )
             } catch (e: Exception) {
-                android.util.Log.e("HomeMenuViewModel", "Exception updating task state", e)
+                android.util.Log.e("HomeMenuViewModel", "Exceção ao atualizar task: ${e.message}")
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     errorMessage = e.message ?: "Erro ao atualizar estado da tarefa"

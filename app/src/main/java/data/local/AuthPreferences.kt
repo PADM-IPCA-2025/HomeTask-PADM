@@ -17,6 +17,7 @@ class AuthPreferences(context: Context) {
         private const val KEY_USER_NAME = "user_name"
         private const val KEY_USER_ROLES = "user_roles"
         private const val KEY_PROFILE_PICTURE = "profile_picture"
+        private const val KEY_MOBILE_TOKEN = "mobile_token"
         private const val KEY_IS_LOGGED_IN = "is_logged_in"
     }
 
@@ -28,6 +29,7 @@ class AuthPreferences(context: Context) {
             putString(KEY_USER_NAME, user.name)
             putString(KEY_USER_ROLES, user.roles)
             putString(KEY_PROFILE_PICTURE, user.profilePicture)
+            putString(KEY_MOBILE_TOKEN, user.mobileToken)
             putBoolean(KEY_IS_LOGGED_IN, true)
             apply()
         }
@@ -63,6 +65,10 @@ class AuthPreferences(context: Context) {
 
     fun getProfilePicture(): String? {
         return sharedPreferences.getString(KEY_PROFILE_PICTURE, null)
+    }
+
+    fun getMobileToken(): String? {
+        return sharedPreferences.getString(KEY_MOBILE_TOKEN, null)
     }
 
     fun isLoggedIn(): Boolean {

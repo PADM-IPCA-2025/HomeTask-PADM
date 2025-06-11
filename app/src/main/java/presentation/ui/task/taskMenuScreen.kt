@@ -101,7 +101,10 @@ fun TasksMenuScreen(
                     contentDescription = "Shopping Cart",
                     modifier = Modifier
                         .size(24.dp)
-                        .clickable { onShoppingCartClick() },
+                        .clickable { 
+                            Log.d("ShoppingCart", "Navegando para shoppingList/$homeId")
+                            onShoppingCartClick()
+                        },
                     tint = colorResource(id = R.color.secondary_blue)
                 )
             }

@@ -12,12 +12,14 @@ data class UserDto(
     @SerializedName("profilepicture") val profilePicture: String? = null,
     @SerializedName("token") val token: String? = null,
     @SerializedName("verificationcode") val verificationCode: String? = null,
-    @SerializedName("codeexpiry") val codeExpiry: String? = null
+    @SerializedName("codeexpiry") val codeExpiry: String? = null,
+    @SerializedName("mobileToken") val mobileToken: String? = null
 )
 
 data class LoginRequest(
     @SerializedName("email") val email: String,
-    @SerializedName("password") val password: String
+    @SerializedName("password") val password: String,
+    @SerializedName("mobileToken") val mobileToken: String? = null
 )
 
 data class ForgotPasswordRequest(

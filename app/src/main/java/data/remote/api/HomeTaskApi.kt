@@ -89,4 +89,7 @@ interface HomeTaskApi {
     // ZipCode endpoints
     @GET("api/tasks/zipcodes")
     suspend fun getAllZipCodes(): Response<ApiResponse<List<ZipCodeDto>>>
+
+    @POST("notifications/send")
+    suspend fun sendNotification(@Body notification: Map<String, Any>): Response<ApiResponse<Unit>>
 }

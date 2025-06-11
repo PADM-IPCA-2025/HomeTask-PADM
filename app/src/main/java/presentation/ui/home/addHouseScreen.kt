@@ -70,16 +70,19 @@ fun AddEditHouseScreen(
                 onBackClick = onBackClick
             )
             Spacer(modifier = Modifier.height(40.dp))
-
+            Spacer(modifier = Modifier.height(200.dp))
             // Campo Nome da Casa
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.Start
             ) {
                 CustomTextBox(
-                    value = name,
-                    onValueChange = { name = it },
-                    placeholder = "Enter house name"
+                value = name,
+                onValueChange = { name = it },
+                placeholder = "Enter house name",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.CenterHorizontally)
                 )
             }
 
@@ -93,7 +96,10 @@ fun AddEditHouseScreen(
                 CustomTextBox(
                     value = address,
                     onValueChange = { address = it },
-                    placeholder = "Enter address"
+                    placeholder = "Enter address",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.CenterHorizontally)
                 )
             }
 

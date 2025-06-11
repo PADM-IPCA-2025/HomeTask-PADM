@@ -269,8 +269,10 @@ fun NavigationRouter() {
                 homeMenuViewModel = homeMenuViewModel,
                 navController = navController,
                 onShoppingCartClick = {
-                    Log.d("NavigationRouter", "Navegando para shopping cart")
-                    navController.navigate("shoppingCart")
+                    Log.d("NavigationRouter", "Navegando para shopping list com homeId: $homeId")
+                    navController.navigate("shopping_list/$homeId") {
+                        launchSingleTop = true
+                    }
                 },
                 onAddTaskClick = {
                     Log.d("NavigationRouter", "Navegando para add task")
@@ -317,12 +319,9 @@ fun NavigationRouter() {
                 },
                 onClosestSupermarketClick = {
                     Log.d("NavigationRouter", "Funcionalidade de supermercado mais próximo ainda não implementada")
-                    // TODO: Implementar funcionalidade do supermercado mais próximo
-                    // navController.navigate("nearbyStores")
                 },
                 onCreateListClick = {
                     Log.d("NavigationRouter", "Criar lista será feito via dialog no próprio screen")
-                    // Criar lista será feito via dialog no próprio screen
                 },
                 onLoginRequired = {
                     Log.w("NavigationRouter", "Login necessário em shoppingLists, redirecionando")

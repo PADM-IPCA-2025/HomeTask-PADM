@@ -1,5 +1,8 @@
 package pt.ipca.hometask.data.repository
 
+import android.util.Log
+import com.google.firebase.messaging.FirebaseMessaging
+import kotlinx.coroutines.tasks.await
 import pt.ipca.hometask.data.remote.api.UserAuthApi
 import pt.ipca.hometask.data.remote.model.*
 import pt.ipca.hometask.domain.model.User
@@ -15,7 +18,7 @@ class UserRepositoryImpl : UserRepository {
                 name = user.name,
                 email = user.email,
                 password = password,
-                roles = user.roles, // ← Envia "roles" para a API
+                roles = user.roles,
                 profilePicture = user.profilePicture
             )
 
@@ -45,7 +48,12 @@ class UserRepositoryImpl : UserRepository {
 
     override suspend fun login(email: String, password: String): Result<User> {
         return try {
-            val response = api.login(LoginRequest(email, password))
+            // Obter o token FCM
+            val fcmToken = FirebaseMessaging.getInstance().token.await()
+            Log.d("UserRepositoryImpl", "FCM Token obtido: $fcmToken")
+
+            // Fazer login com email, password e token FCM
+            val response = api.login(LoginRequest(email, password, fcmToken))
             if (response.isSuccessful && response.body() != null) {
                 val apiResponse = response.body()!!
 
@@ -57,7 +65,8 @@ class UserRepositoryImpl : UserRepository {
                         email = dto.email,
                         roles = dto.role ?: dto.roles ?: "",
                         profilePicture = dto.profilePicture,
-                        token = dto.token
+                        token = dto.token,
+                        mobileToken = fcmToken
                     ))
                 } else {
                     Result.failure(Exception(apiResponse.message))
@@ -66,6 +75,7 @@ class UserRepositoryImpl : UserRepository {
                 Result.failure(Exception("Login failed: ${response.message()}"))
             }
         } catch (e: Exception) {
+            Log.e("UserRepositoryImpl", "Erro ao fazer login", e)
             Result.failure(e)
         }
     }

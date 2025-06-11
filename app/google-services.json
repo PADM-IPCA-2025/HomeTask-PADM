@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "209975074755",
+    "project_id": "hometask-142bb",
+    "storage_bucket": "hometask-142bb.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:209975074755:android:b96803af54bd5e0268a776",
+        "android_client_info": {
+          "package_name": "pt.ipca.hometask"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCI_95uvL23Z-BchAvmmhHD_N03luWRWcc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

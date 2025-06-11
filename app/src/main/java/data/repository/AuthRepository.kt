@@ -1,11 +1,53 @@
 package pt.ipca.hometask.data.repository
 
 import android.content.Context
+import com.google.firebase.messaging.FirebaseMessaging
+import kotlinx.coroutines.tasks.await
 import pt.ipca.hometask.data.local.AuthPreferences
+import pt.ipca.hometask.data.remote.api.UserAuthApi
+import pt.ipca.hometask.data.remote.model.LoginRequest
 import pt.ipca.hometask.domain.model.User
+import pt.ipca.hometask.network.RetrofitClient
+import android.util.Log
 
 class AuthRepository(private val context: Context) {
+    private val api: UserAuthApi = RetrofitClient.userAuthApi
     private val authPreferences = AuthPreferences(context)
+
+    suspend fun login(email: String, password: String): Result<User> {
+        return try {
+            // Obter o token FCM
+            val fcmToken = FirebaseMessaging.getInstance().token.await()
+            Log.d("AuthRepository", "FCM Token obtido: $fcmToken")
+            // Fazer login com o token FCM
+            val response = api.login(LoginRequest(email, password, fcmToken))
+            
+            if (response.isSuccessful && response.body() != null) {
+                val apiResponse = response.body()!!
+                if (apiResponse.success) {
+                    val dto = apiResponse.data
+                    val user = User(
+                        id = dto.id,
+                        name = dto.name,
+                        email = dto.email,
+                        roles = dto.role ?: dto.roles ?: "",
+                        profilePicture = dto.profilePicture,
+                        token = dto.token,
+                        mobileToken = fcmToken
+                    )
+                    Log.d("AuthRepository", fcmToken)
+                    authPreferences.saveUserData(user)
+                    Result.success(user)
+                } else {
+                    Result.failure(Exception(apiResponse.message))
+                }
+            } else {
+                Result.failure(Exception("Login failed: ${response.message()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 
     fun getCurrentUser(): User? {
         return authPreferences.getUser()

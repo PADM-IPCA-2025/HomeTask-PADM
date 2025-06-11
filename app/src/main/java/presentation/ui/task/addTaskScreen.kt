@@ -57,7 +57,7 @@ fun AddEditTaskScreen(
     var showStatusDialog by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
 
-    val groups = listOf("Kitchen", "Living Room", "Bedroom", "Bathroom", "Garden", "Other")
+    val groups = listOf("Grupo6 Residente")
     val statuses = listOf("To Do", "In Progress", "Completed")
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -65,11 +65,12 @@ fun AddEditTaskScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 16.dp)
+                .padding(top = 48.dp)
                 .padding(bottom = 220.dp)
                 .verticalScroll(rememberScrollState())
         ) {
             TopBar(
-                title = if (isEditMode) "Edit Task" else "Task Title",
+                title = if (isEditMode) "Edit Task" else "Create Task",
                 onBackClick = onBackClick
             )
 
@@ -109,12 +110,15 @@ fun AddEditTaskScreen(
                 text = "Task Name",
                 fontSize = 14.sp,
                 color = colorResource(id = R.color.secondary_blue).copy(alpha = 0.7f),
-                modifier = Modifier.padding(bottom = 8.dp)
+                modifier = Modifier.padding(start = 24.dp, bottom = 8.dp)
             )
             CustomTextBox(
                 value = taskName,
                 onValueChange = { taskName = it },
-                placeholder = "Enter task name"
+                placeholder = "Enter task name",
+                modifier = Modifier
+                    .fillMaxWidth(0.9f)
+                    .padding(start = 24.dp)
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -124,12 +128,15 @@ fun AddEditTaskScreen(
                 text = "Task Description",
                 fontSize = 14.sp,
                 color = colorResource(id = R.color.secondary_blue).copy(alpha = 0.7f),
-                modifier = Modifier.padding(bottom = 8.dp)
+                modifier = Modifier.padding(start = 24.dp, bottom = 8.dp)
             )
             CustomTextBox(
                 value = description,
                 onValueChange = { description = it },
-                placeholder = "Enter task description"
+                placeholder = "Enter task description",
+                modifier = Modifier
+                    .fillMaxWidth(0.9f)
+                    .padding(start = 24.dp)
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -139,29 +146,36 @@ fun AddEditTaskScreen(
                 text = "Task Responsible",
                 fontSize = 14.sp,
                 color = colorResource(id = R.color.secondary_blue).copy(alpha = 0.7f),
-                modifier = Modifier.padding(bottom = 8.dp)
+                modifier = Modifier.padding(start = 24.dp, bottom = 8.dp)
             )
             DropdownField(
                 value = selectedGroup,
                 placeholder = "Select group",
-                onClick = { showGroupDialog = true }
+                onClick = { showGroupDialog = true },
+                modifier = Modifier
+                    .fillMaxWidth(0.9f)
+                    .padding(start = 24.dp)
             )
 
             Spacer(modifier = Modifier.height(24.dp))
-
 
             // Date
             Text(
                 text = "Date",
                 fontSize = 14.sp,
                 color = colorResource(id = R.color.secondary_blue).copy(alpha = 0.7f),
-                modifier = Modifier.padding(bottom = 8.dp)
+                modifier = Modifier.padding(start = 24.dp, bottom = 8.dp)
             )
             DateField(
                 value = selectedDate,
                 placeholder = "Select date",
-                onClick = { showDatePicker = true }
+                onClick = { showDatePicker = true },
+                modifier = Modifier
+                    .fillMaxWidth(0.9f)
+                    .padding(start = 24.dp)
             )
+
+            Spacer(modifier = Modifier.height(64.dp)) // Aumentado o espaço antes dos botões
         }
 
         // Buttons
@@ -169,7 +183,7 @@ fun AddEditTaskScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
-                .padding(start = 16.dp, end = 16.dp, bottom = 140.dp),
+                .padding(start = 16.dp, end = 16.dp, bottom = 80.dp), // Reduzido o padding bottom para mover mais para baixo
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -205,7 +219,7 @@ fun AddEditTaskScreen(
         // Group Selection Dialog
         if (showGroupDialog) {
             SelectionDialog(
-                title = "Select Group",
+                title = "Select Responsible",
                 options = groups,
                 selectedOption = selectedGroup,
                 onOptionSelected = { selectedGroup = it },
@@ -271,11 +285,11 @@ fun AddEditTaskScreen(
 private fun DropdownField(
     value: String,
     placeholder: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Box(
-        modifier = Modifier
-            .width(328.dp)
+        modifier = modifier
             .height(60.dp)
             .clickable { onClick() }
     ) {
@@ -317,11 +331,11 @@ private fun DropdownField(
 private fun DateField(
     value: String,
     placeholder: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Box(
-        modifier = Modifier
-            .width(328.dp)
+        modifier = modifier
             .height(60.dp)
             .clickable { onClick() }
     ) {

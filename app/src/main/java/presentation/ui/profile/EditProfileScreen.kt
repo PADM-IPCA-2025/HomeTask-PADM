@@ -111,7 +111,7 @@ fun EditProfilePage(
                 )
             }
 
-            Spacer(modifier = Modifier.height(60.dp))
+            Spacer(modifier = Modifier.height(200.dp))
 
             // Botão Save Changes
             CustomButton(
@@ -129,6 +129,8 @@ fun EditProfilePage(
                 onClick = { viewModel.logout() },
                 isDanger = true
             )
+
+            Spacer(modifier = Modifier.height(32.dp))
         }
         Box(
             modifier = Modifier

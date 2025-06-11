@@ -208,13 +208,18 @@ fun TasksMenuScreen(
                 .padding(start = 16.dp, end = 16.dp, bottom = 80.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            CustomButton(
-                text = "Invite Resident",
-                onClick = {
-                    Log.d("InviteResident", "Navegando para inviteResident/$homeId")
-                    navController?.navigate("inviteResident/$homeId")
-                }
-            )
+            // Só mostra o botão se o usuário atual for o dono da casa
+            val currentUserId = homeMenuViewModel.uiState.value.currentUserId
+            val home = homeMenuViewModel.uiState.value.homes.find { it.id == homeId }
+            if (currentUserId == home?.userId) {
+                CustomButton(
+                    text = "Invite Resident",
+                    onClick = {
+                        Log.d("InviteResident", "Navegando para inviteResident/$homeId")
+                        navController?.navigate("inviteResident/$homeId")
+                    }
+                )
+            }
         }
         // Bottom Menu
         Box(

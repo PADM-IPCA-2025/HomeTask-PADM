@@ -32,6 +32,8 @@ fun InviteResidentScreen(
                 .padding(horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Spacer(modifier = Modifier.height(60.dp))
+
             TopBar(
                 title = "Invite Resident",
                 onBackClick = onBackClick

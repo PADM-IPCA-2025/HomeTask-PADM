@@ -126,17 +126,20 @@ class UserRepositoryImpl : UserRepository {
         return try {
             val response = api.getAllUsers()
             if (response.isSuccessful && response.body() != null) {
-                val users = response.body()!!.map { dto ->
-                    User(
-                        id = dto.id,
-                        name = dto.name,
-                        email = dto.email,
-                        roles = dto.role ?: dto.roles ?: "",
-                        profilePicture = dto.profilePicture,
-                        token = dto.token
+                val apiResponse = response.body()!!
+                if (apiResponse.success && apiResponse.data != null) {
+                    val user = User(
+                        id = apiResponse.data.id,
+                        name = apiResponse.data.name,
+                        email = apiResponse.data.email,
+                        roles = apiResponse.data.role ?: apiResponse.data.roles ?: "",
+                        profilePicture = apiResponse.data.profilePicture,
+                        token = apiResponse.data.token
                     )
+                    Result.success(listOf(user))
+                } else {
+                    Result.failure(Exception(apiResponse.message ?: "Get users failed"))
                 }
-                Result.success(users)
             } else {
                 Result.failure(Exception("Get users failed: ${response.message()}"))
             }

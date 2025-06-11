@@ -13,7 +13,7 @@ import retrofit2.HttpException
 
 class InviteResidentViewModel : ViewModel() {
     private val api: HomeTaskApi = RetrofitClient.homeTaskApi
-    private val userApi: UserAuthApi = RetrofitClient.userAuthApi
+    private val apiUser: UserAuthApi = RetrofitClient.userAuthApi
     val users = mutableStateOf<List<User>>(emptyList())
     val isLoading = mutableStateOf(false)
     val errorMessage = mutableStateOf<String?>(null)
@@ -21,26 +21,67 @@ class InviteResidentViewModel : ViewModel() {
 
     fun loadAllUsers() {
         viewModelScope.launch {
+            android.util.Log.d("InviteResident", "Iniciando loadAllUsers()")
             isLoading.value = true
             errorMessage.value = null
             try {
-                val response = userApi.getAllUsers()
-                if (response.isSuccessful && response.body() != null) {
-                    users.value = response.body()!!.map { dto ->
-                        User(
-                            id = dto.id,
-                            name = dto.name,
-                            email = dto.email,
-                            roles = dto.role ?: dto.roles ?: "",
-                            profilePicture = dto.profilePicture,
-                            token = dto.token
-                        )
-                    }
-                    android.util.Log.d("InviteResident", "Users carregados: " + users.value.joinToString { it.email ?: "null" })
+                android.util.Log.d("InviteResident", "Chamando API getAllUsers()")
+                val response = apiUser.getAllUsers()
+                android.util.Log.d("InviteResident", "Resposta recebida: success=${response.isSuccessful}, code=${response.code()}")
+                
+                if (!response.isSuccessful) {
+                    val errorBody = response.errorBody()?.string()
+                    android.util.Log.e("InviteResident", "Erro na resposta: $errorBody")
+                    errorMessage.value = "Erro ao carregar utilizadores: ${response.code()}"
+                    isLoading.value = false
+                    return@launch
+                }
+
+                val responseBody = response.body()
+                if (responseBody == null) {
+                    android.util.Log.e("InviteResident", "Resposta vazia")
+                    errorMessage.value = "Resposta vazia do servidor"
+                    isLoading.value = false
+                    return@launch
+                }
+
+                android.util.Log.d("InviteResident", """
+                    API Response completa:
+                    - Success: ${responseBody.success}
+                    - Message: ${responseBody.message}
+                    - Data: ${responseBody.data}
+                """.trimIndent())
+                
+                if (responseBody.success && responseBody.data != null) {
+                    android.util.Log.d("InviteResident", "Resposta bem sucedida, mapeando usuários")
+                    
+                    val userDto = responseBody.data
+                    android.util.Log.d("InviteResident", """
+                        Mapeando usuário:
+                        - ID: ${userDto.id}
+                        - Nome: ${userDto.name}
+                        - Email: ${userDto.email}
+                        - Roles: ${userDto.role ?: userDto.roles}
+                        - Profile Picture: ${userDto.profilePicture}
+                    """.trimIndent())
+                    
+                    val user = User(
+                        id = userDto.id,
+                        name = userDto.name ?: "Sem nome",
+                        email = userDto.email ?: "Sem email",
+                        roles = userDto.role ?: userDto.roles ?: "Resident",
+                        profilePicture = userDto.profilePicture,
+                        token = userDto.token
+                    )
+                    
+                    users.value = listOf(user)
+                    android.util.Log.d("InviteResident", "Usuário mapeado com sucesso")
                 } else {
-                    errorMessage.value = "Erro ao carregar utilizadores"
+                    android.util.Log.e("InviteResident", "Erro na resposta da API: ${responseBody.message}")
+                    errorMessage.value = responseBody.message ?: "Erro ao carregar utilizadores"
                 }
             } catch (e: Exception) {
+                android.util.Log.e("InviteResident", "Exceção ao carregar usuários", e)
                 errorMessage.value = e.message
             }
             isLoading.value = false

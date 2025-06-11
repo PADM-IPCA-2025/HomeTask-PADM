@@ -25,7 +25,10 @@ interface UserAuthApi {
     suspend fun resetPassword(@Body request: ResetPasswordRequest): Response<Unit>
 
     @GET("api/auth/user")
-    suspend fun getAllUsers(): Response<List<UserDto>>
+    suspend fun getAllUsers(): Response<ApiResponse<UserDto>>
+
+    @GET("api/auth/users")
+    suspend fun listAllUsers(): Response<ApiResponse<List<UserDto>>>
 
     @PUT("api/auth/user/{id}")
     suspend fun updateUser(@Path("id") id: Int, @Body user: UserDto): Response<UserDto>

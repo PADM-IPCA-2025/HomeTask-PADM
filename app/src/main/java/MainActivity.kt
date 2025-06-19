@@ -269,8 +269,8 @@ fun NavigationRouter() {
                 homeMenuViewModel = homeMenuViewModel,
                 navController = navController,
                 onShoppingCartClick = {
-                    Log.d("NavigationRouter", "Navegando para shopping list com homeId: $homeId")
-                    navController.navigate("shopping_list/$homeId") {
+                    Log.d("NavigationRouter", "Navegando para shoppingLists/$homeId")
+                    navController.navigate("shoppingLists/$homeId") {
                         launchSingleTop = true
                     }
                 },
@@ -296,9 +296,51 @@ fun NavigationRouter() {
         }
 
         // ========== SHOPPING ROUTES ==========
+        composable(
+            "shoppingLists/{homeId}",
+            arguments = listOf(navArgument("homeId") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val homeId = backStackEntry.arguments?.getInt("homeId") ?: 0
+            Log.d("NavigationRouter", "Renderizando ShoppingListsScreenContainer para casa ID: $homeId")
+            ShoppingListsScreenContainer(
+                homeId = homeId,
+                onBackClick = {
+                    Log.d("NavigationRouter", "Voltando de shoppingLists")
+                    navController.popBackStack()
+                },
+                onListClick = { listId ->
+                    Log.d("NavigationRouter", "Navegando para shopping_list com ID: $listId")
+                    navController.navigate("shopping_list/$listId")
+                },
+                onHomeClick = {
+                    Log.d("NavigationRouter", "Navegando para homeMenu desde shoppingLists")
+                    navController.navigate("homeMenu") {
+                        popUpTo("shoppingLists/$homeId") { inclusive = true }
+                    }
+                },
+                onProfileClick = {
+                    Log.d("NavigationRouter", "Navegando para editProfile desde shoppingLists")
+                    navController.navigate("editProfile")
+                },
+                onClosestSupermarketClick = {
+                    Log.d("NavigationRouter", "Funcionalidade de supermercado mais próximo ainda não implementada")
+                },
+                onCreateListClick = {
+                    Log.d("NavigationRouter", "Criar lista será feito via dialog no próprio screen")
+                },
+                onLoginRequired = {
+                    Log.w("NavigationRouter", "Login necessário em shoppingLists, redirecionando")
+                    navController.navigate("login") {
+                        popUpTo("shoppingLists/$homeId") { inclusive = true }
+                    }
+                }
+            )
+        }
+
         composable("shoppingLists") {
             Log.d("NavigationRouter", "Renderizando ShoppingListsScreenContainer")
             ShoppingListsScreenContainer(
+                homeId = 0, // Fallback para compatibilidade
                 onBackClick = {
                     Log.d("NavigationRouter", "Voltando de shoppingLists")
                     navController.popBackStack()

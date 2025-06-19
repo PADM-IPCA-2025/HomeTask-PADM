@@ -2,6 +2,7 @@ package pt.ipca.hometask.presentation.ui.shopping
 
 import modules.TopBar
 import modules.BottomMenuBar
+import modules.CustomButton
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -9,6 +10,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
@@ -33,6 +35,7 @@ fun ShoppingListsScreen(
     onHomeClick: () -> Unit = {},
     onProfileClick: () -> Unit = {},
     onClosestSupermarketClick: () -> Unit = {},
+    onAddClick: () -> Unit = {},
     inProgressLists: List<ShoppingList> = emptyList(),
     historyLists: List<ShoppingList> = emptyList(),
     selectedTab: ShoppingListTab = ShoppingListTab.IN_PROGRESS,
@@ -51,58 +54,36 @@ fun ShoppingListsScreen(
                 .padding(horizontal = 16.dp)
                 .padding(bottom = 70.dp)
         ) {
+            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(24.dp))
+            
             TopBar(
                 title = "Shopping Lists",
-                onBackClick = onBackClick
+                onBackClick = onBackClick,
+                rightIcon = Icons.Default.Add,
+                onRightIconClick = onAddClick
             )
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Tabs
-            TabRow(
-                selectedTabIndex = if (selectedTab == ShoppingListTab.IN_PROGRESS) 0 else 1,
-                modifier = Modifier.fillMaxWidth(),
-                containerColor = Color.Transparent,
-                divider = {},
-                indicator = { tabPositions ->
-                    TabRowDefaults.Indicator(
-                        modifier = Modifier.tabIndicatorOffset(tabPositions[if (selectedTab == ShoppingListTab.IN_PROGRESS) 0 else 1]),
-                        color = colorResource(id = R.color.secondary_blue),
-                        height = 2.dp
-                    )
-                }
+            // Custom Tab Row
+            Row(
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Tab(
-                    selected = selectedTab == ShoppingListTab.IN_PROGRESS,
+                TabButton(
+                    text = "In progress",
+                    isSelected = selectedTab == ShoppingListTab.IN_PROGRESS,
                     onClick = { onTabSelected(ShoppingListTab.IN_PROGRESS) },
-                    modifier = Modifier.padding(vertical = 12.dp)
-                ) {
-                    Text(
-                        text = "In progress",
-                        fontSize = 16.sp,
-                        color = if (selectedTab == ShoppingListTab.IN_PROGRESS)
-                            colorResource(id = R.color.secondary_blue)
-                        else
-                            colorResource(id = R.color.secondary_blue).copy(alpha = 0.6f),
-                        fontWeight = if (selectedTab == ShoppingListTab.IN_PROGRESS) FontWeight.Bold else FontWeight.Normal
-                    )
-                }
-                Tab(
-                    selected = selectedTab == ShoppingListTab.HISTORY,
+                    modifier = Modifier.weight(1f)
+                )
+                TabButton(
+                    text = "History",
+                    isSelected = selectedTab == ShoppingListTab.HISTORY,
                     onClick = { onTabSelected(ShoppingListTab.HISTORY) },
-                    modifier = Modifier.padding(vertical = 12.dp)
-                ) {
-                    Text(
-                        text = "History",
-                        fontSize = 16.sp,
-                        color = if (selectedTab == ShoppingListTab.HISTORY)
-                            colorResource(id = R.color.secondary_blue)
-                        else
-                            colorResource(id = R.color.secondary_blue).copy(alpha = 0.6f),
-                        fontWeight = if (selectedTab == ShoppingListTab.HISTORY) FontWeight.Bold else FontWeight.Normal
-                    )
-                }
+                    modifier = Modifier.weight(1f)
+                )
             }
+            Spacer(modifier = Modifier.height(16.dp))
 
             Spacer(modifier = Modifier.height(32.dp))
 
@@ -165,26 +146,22 @@ fun ShoppingListsScreen(
                 }
             }
 
+            Spacer(modifier = Modifier.height(40.dp))
             Spacer(modifier = Modifier.height(16.dp))
+        }
 
-            // Closest Supermarket Button
-            Button(
-                onClick = onClosestSupermarketClick,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = colorResource(id = R.color.secondary_blue)
-                ),
-                shape = RoundedCornerShape(28.dp)
-            ) {
-                Text(
-                    text = "Closest Supermarket",
-                    color = Color.White,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium
-                )
-            }
+        // Closest Supermarket Button
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter)
+                .padding(start = 16.dp, end = 16.dp, bottom = 80.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            CustomButton(
+                text = "Closest Supermarket",
+                onClick = onClosestSupermarketClick
+            )
         }
 
         // Bottom Menu
@@ -302,6 +279,39 @@ fun ShoppingListCard(
     }
 }
 
+@Composable
+private fun TabButton(
+    text: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .clickable { onClick() }
+            .padding(vertical = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = text,
+            fontSize = 16.sp,
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+            color = colorResource(id = R.color.secondary_blue)
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        HorizontalDivider(
+            modifier = Modifier.fillMaxWidth(),
+            color = if (isSelected)
+                colorResource(id = R.color.secondary_blue)
+            else
+                colorResource(id = R.color.secondary_blue).copy(alpha = 0.3f),
+            thickness = if (isSelected) 2.dp else 1.dp
+        )
+    }
+}
+
 @Preview(showBackground = true, backgroundColor = 0xFFF5F5F5)
 @Composable
 fun ShoppingListsScreenPreview() {
@@ -342,6 +352,7 @@ fun ShoppingListsScreenPreview() {
         onHomeClick = { /* Home */ },
         onProfileClick = { /* Profile */ },
         onClosestSupermarketClick = { /* Supermercado mais próximo */ },
+        onAddClick = { /* Adicionar lista */ },
         onTabSelected = { /* Trocar aba */ }
     )
 }
@@ -373,6 +384,7 @@ fun ShoppingListsScreenHistoryPreview() {
         onHomeClick = { /* Home */ },
         onProfileClick = { /* Profile */ },
         onClosestSupermarketClick = { /* Supermercado mais próximo */ },
+        onAddClick = { /* Adicionar lista */ },
         onTabSelected = { /* Trocar aba */ }
     )
 }

@@ -22,6 +22,7 @@ import pt.ipca.hometask.presentation.ui.shopping.ShoppingListsScreen
 
 @Composable
 fun ShoppingListsScreenContainer(
+    homeId: Int,
     onBackClick: () -> Unit = {},
     onListClick: (Int) -> Unit = {},
     onHomeClick: () -> Unit = {},
@@ -37,6 +38,11 @@ fun ShoppingListsScreenContainer(
     var showErrorDialog by remember { mutableStateOf(false) }
     var showCreateListDialog by remember { mutableStateOf(false) }
     var newListTitle by remember { mutableStateOf("") }
+
+    // Carregar listas da casa específica quando o componente for criado
+    LaunchedEffect(homeId) {
+        viewModel.loadShoppingListsByHome(homeId)
+    }
 
     // Verificar se usuário está logado
     if (!uiState.isUserLoggedIn) {
@@ -73,6 +79,7 @@ fun ShoppingListsScreenContainer(
             onHomeClick = onHomeClick,
             onProfileClick = onProfileClick,
             onClosestSupermarketClick = onClosestSupermarketClick,
+            onAddClick = { showCreateListDialog = true },
             inProgressLists = uiState.inProgressLists.map { it.shoppingList },
             historyLists = uiState.historyLists.map { it.shoppingList },
             selectedTab = uiState.selectedTab,
@@ -80,21 +87,6 @@ fun ShoppingListsScreenContainer(
             isLoading = uiState.isLoading
         )
 
-        // Floating Action Button para criar nova lista
-        FloatingActionButton(
-            onClick = { showCreateListDialog = true },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp)
-                .padding(bottom = 80.dp), // Acima do BottomMenuBar
-            containerColor = colorResource(id = R.color.secondary_blue)
-        ) {
-            Text(
-                text = "+",
-                color = Color.White,
-                fontSize = 24.sp
-            )
-        }
 
         // Loading overlay
         if (uiState.isLoading) {
@@ -156,7 +148,7 @@ fun ShoppingListsScreenContainer(
                     TextButton(
                         onClick = {
                             if (newListTitle.isNotBlank()) {
-                                viewModel.createShoppingList(newListTitle.trim())
+                                viewModel.createShoppingList(newListTitle.trim(), homeId)
                             }
                         },
                         enabled = newListTitle.isNotBlank() && !uiState.isLoading
@@ -308,23 +300,9 @@ fun ShoppingListsScreenContainerPreview() {
             onHomeClick = { },
             onProfileClick = { },
             onClosestSupermarketClick = { },
+            onAddClick = { },
             onTabSelected = { },
             isLoading = false
         )
-
-        FloatingActionButton(
-            onClick = { },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp)
-                .padding(bottom = 80.dp),
-            containerColor = colorResource(id = R.color.secondary_blue)
-        ) {
-            Text(
-                text = "+",
-                color = Color.White,
-                fontSize = 24.sp
-            )
-        }
     }
 }

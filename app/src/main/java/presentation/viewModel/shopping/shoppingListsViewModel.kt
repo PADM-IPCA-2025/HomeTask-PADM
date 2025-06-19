@@ -91,11 +91,11 @@ class ShoppingListsViewModel(
     }
 
     fun loadShoppingListsByHome(homeId: Int) {
-        // Verificar se o homeId corresponde ao usuário logado
-        val currentUserId = authRepository.getUserId()
-        if (currentUserId != homeId && !authRepository.isAdmin()) {
+        // Verificar se o usuário está logado
+        if (!authRepository.isLoggedIn()) {
             _uiState.value = _uiState.value.copy(
-                errorMessage = "Você não tem permissão para acessar essas listas"
+                errorMessage = "Usuário não está logado",
+                isUserLoggedIn = false
             )
             return
         }
@@ -133,36 +133,32 @@ class ShoppingListsViewModel(
         lists.forEach { shoppingList ->
             val listId = shoppingList.id ?: return@forEach
 
-            // Verificar se a lista pertence ao usuário atual
-            val currentUserId = authRepository.getUserId()
-            if (currentUserId != null && (shoppingList.homeId == currentUserId || authRepository.isAdmin())) {
-                try {
-                    val items = getItemsForList(listId)
-                    itemsCache[listId] = items
+            try {
+                val items = getItemsForList(listId)
+                itemsCache[listId] = items
 
-                    val totalPrice = items.sumOf { (it.quantity * it.price).toDouble() }.toFloat()
-                    val totalItems = items.size
-                    val completedItems = items.count { it.state == "comprado" }
+                val totalPrice = items.sumOf { (it.quantity * it.price).toDouble() }.toFloat()
+                val totalItems = items.size
+                val completedItems = items.count { it.state == "comprado" }
 
-                    listsWithTotals.add(
-                        ShoppingListWithTotal(
-                            shoppingList = shoppingList,
-                            totalPrice = totalPrice,
-                            totalItems = totalItems,
-                            completedItems = completedItems
-                        )
+                listsWithTotals.add(
+                    ShoppingListWithTotal(
+                        shoppingList = shoppingList,
+                        totalPrice = totalPrice,
+                        totalItems = totalItems,
+                        completedItems = completedItems
                     )
-                } catch (e: Exception) {
-                    // Se falhar ao carregar itens de uma lista específica, continuar com as outras
-                    listsWithTotals.add(
-                        ShoppingListWithTotal(
-                            shoppingList = shoppingList,
-                            totalPrice = 0f,
-                            totalItems = 0,
-                            completedItems = 0
-                        )
+                )
+            } catch (e: Exception) {
+                // Se falhar ao carregar itens de uma lista específica, continuar com as outras
+                listsWithTotals.add(
+                    ShoppingListWithTotal(
+                        shoppingList = shoppingList,
+                        totalPrice = 0f,
+                        totalItems = 0,
+                        completedItems = 0
                     )
-                }
+                )
             }
         }
 
@@ -206,7 +202,7 @@ class ShoppingListsViewModel(
         }
     }
 
-    fun createShoppingList(title: String) {
+    fun createShoppingList(title: String, homeId: Int? = null) {
         if (!authRepository.isLoggedIn()) {
             _uiState.value = _uiState.value.copy(
                 errorMessage = "Usuário não está logado"
@@ -214,10 +210,10 @@ class ShoppingListsViewModel(
             return
         }
 
-        val userId = authRepository.getUserId()
-        if (userId == null) {
+        val targetHomeId = homeId ?: authRepository.getUserId()
+        if (targetHomeId == null) {
             _uiState.value = _uiState.value.copy(
-                errorMessage = "ID do usuário não encontrado"
+                errorMessage = "ID da casa não encontrado"
             )
             return
         }
@@ -228,7 +224,7 @@ class ShoppingListsViewModel(
             try {
                 val newList = ShoppingList(
                     title = title.trim(),
-                    homeId = userId // Usar o ID do usuário logado como homeId
+                    homeId = targetHomeId
                 )
 
                 val result = repository.createShoppingList(newList)

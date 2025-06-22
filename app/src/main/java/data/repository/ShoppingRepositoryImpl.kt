@@ -1,5 +1,6 @@
 package pt.ipca.hometask.data.repository
 
+import android.content.Context
 import pt.ipca.hometask.data.remote.api.ShoppingApi
 import pt.ipca.hometask.data.remote.model.*
 import pt.ipca.hometask.data.remote.model.ShoppingListDto
@@ -7,27 +8,31 @@ import pt.ipca.hometask.domain.model.*
 import pt.ipca.hometask.domain.repository.ShoppingRepository
 import pt.ipca.hometask.network.RetrofitClient
 
-class ShoppingRepositoryImpl : ShoppingRepository {
-    private val api: ShoppingApi = RetrofitClient.shoppingApi
+class ShoppingRepositoryImpl(private val context: Context) : ShoppingRepository {
+    private val api: ShoppingApi = RetrofitClient.getShoppingApi(context)
 
     // Mappers
     private fun ShoppingListDto.toDomain(): ShoppingList {
         return ShoppingList(
             id = id,
-            title = title,
+            title = title ?: "Untitled List",
             startDate = startDate,
             endDate = endDate,
-            homeId = homeId
+            homeId = homeId,
+            shoppingItems = shoppingItems?.map { it.toDomain() },
+            total = total
         )
     }
 
     private fun ShoppingList.toDto(): ShoppingListDto {
         return ShoppingListDto(
             id = id,
-            title = title,
+            title = title ?: "Untitled List",
             startDate = startDate,
             endDate = endDate,
-            homeId = homeId
+            homeId = homeId,
+            shoppingItems = shoppingItems?.map { it.toDto() },
+            total = total
         )
     }
 
@@ -35,9 +40,9 @@ class ShoppingRepositoryImpl : ShoppingRepository {
         return ShoppingItem(
             id = id,
             description = description,
-            quantity = quantity,
+            quantity = quantity.toFloat(),
             state = state,
-            price = price,
+            price = price.toFloatOrNull() ?: 0f,
             shoppingListId = shoppingListId,
             itemCategoryId = itemCategoryId
         )
@@ -47,9 +52,9 @@ class ShoppingRepositoryImpl : ShoppingRepository {
         return ShoppingItemDto(
             id = id,
             description = description,
-            quantity = quantity,
+            quantity = quantity.toInt(),
             state = state,
-            price = price,
+            price = price.toString(),
             shoppingListId = shoppingListId,
             itemCategoryId = itemCategoryId
         )
@@ -71,37 +76,76 @@ class ShoppingRepositoryImpl : ShoppingRepository {
 
     // Shopping Lists
     override suspend fun createShoppingList(shoppingList: ShoppingList): Result<ShoppingList> {
+        android.util.Log.d("ShoppingRepositoryImpl", "=== START createShoppingList ===")
+        android.util.Log.d("ShoppingRepositoryImpl", "Creating shopping list: $shoppingList")
+        
         return try {
-            val response = api.createShoppingList(shoppingList.toDto())
+            val dto = shoppingList.toDto()
+            android.util.Log.d("ShoppingRepositoryImpl", "DTO to send: $dto")
+            android.util.Log.d("ShoppingRepositoryImpl", "DTO title: ${dto.title}")
+            android.util.Log.d("ShoppingRepositoryImpl", "DTO homeId: ${dto.homeId}")
+            
+            val response = api.createShoppingList(dto)
+            android.util.Log.d("ShoppingRepositoryImpl", "API response received")
+            android.util.Log.d("ShoppingRepositoryImpl", "Response successful: ${response.isSuccessful}")
+            android.util.Log.d("ShoppingRepositoryImpl", "Response code: ${response.code()}")
+            android.util.Log.d("ShoppingRepositoryImpl", "Response message: ${response.message()}")
+            android.util.Log.d("ShoppingRepositoryImpl", "Response body is null: ${response.body() == null}")
+            
             if (response.isSuccessful && response.body() != null) {
                 val apiResponse = response.body()!!
+                android.util.Log.d("ShoppingRepositoryImpl", "ApiResponse: $apiResponse")
+                android.util.Log.d("ShoppingRepositoryImpl", "ApiResponse.data: ${apiResponse.data}")
+                android.util.Log.d("ShoppingRepositoryImpl", "ApiResponse.data.title: ${apiResponse.data.title}")
+                android.util.Log.d("ShoppingRepositoryImpl", "ApiResponse.data.homeId: ${apiResponse.data.homeId}")
+                android.util.Log.d("ShoppingRepositoryImpl", "ApiResponse.data.id: ${apiResponse.data.id}")
+                
                 if (apiResponse.success) {
-                    Result.success(apiResponse.data.toDomain())
+                    val createdList = apiResponse.data.toDomain()
+                    android.util.Log.d("ShoppingRepositoryImpl", "List created successfully: $createdList")
+                    android.util.Log.d("ShoppingRepositoryImpl", "=== END createShoppingList SUCCESS ===")
+                    Result.success(createdList)
                 } else {
+                    android.util.Log.e("ShoppingRepositoryImpl", "ApiResponse not successful: ${apiResponse.message}")
+                    android.util.Log.d("ShoppingRepositoryImpl", "=== END createShoppingList ERROR ===")
                     Result.failure(Exception(apiResponse.message ?: "Failed to create shopping list"))
                 }
             } else {
+                android.util.Log.e("ShoppingRepositoryImpl", "API call failed: ${response.code()}")
+                android.util.Log.d("ShoppingRepositoryImpl", "=== END createShoppingList ERROR ===")
                 Result.failure(Exception("Create shopping list failed: ${response.message()}"))
             }
         } catch (e: Exception) {
+            android.util.Log.e("ShoppingRepositoryImpl", "Exception creating shopping list", e)
+            android.util.Log.d("ShoppingRepositoryImpl", "=== END createShoppingList EXCEPTION ===")
             Result.failure(e)
         }
     }
 
     override suspend fun getShoppingListById(id: Int): Result<ShoppingList> {
+        android.util.Log.d("ShoppingRepositoryImpl", "--- getShoppingListById START for id: $id ---")
         return try {
             val response = api.getShoppingListById(id)
+            android.util.Log.d("ShoppingRepositoryImpl", "API response for getShoppingListById: code=${response.code()}, successful=${response.isSuccessful}")
+
             if (response.isSuccessful && response.body() != null) {
                 val apiResponse = response.body()!!
+                android.util.Log.d("ShoppingRepositoryImpl", "API response body: $apiResponse")
+
                 if (apiResponse.success) {
-                    Result.success(apiResponse.data.toDomain())
+                    val shoppingList = apiResponse.data
+                    android.util.Log.i("ShoppingRepositoryImpl", "Found shopping list: $shoppingList")
+                    Result.success(shoppingList.toDomain())
                 } else {
+                    android.util.Log.w("ShoppingRepositoryImpl", "API response was not successful: ${apiResponse.message}")
                     Result.failure(Exception(apiResponse.message ?: "Failed to get shopping list"))
                 }
             } else {
+                android.util.Log.e("ShoppingRepositoryImpl", "Get shopping list failed: code=${response.code()}, message=${response.message()}")
                 Result.failure(Exception("Get shopping list failed: ${response.message()}"))
             }
         } catch (e: Exception) {
+            android.util.Log.e("ShoppingRepositoryImpl", "Exception in getShoppingListById", e)
             Result.failure(e)
         }
     }
@@ -130,15 +174,13 @@ class ShoppingRepositoryImpl : ShoppingRepository {
                     if (apiResponse.success) {
                         android.util.Log.d("ShoppingRepositoryImpl", "ApiResponse is successful, processing data...")
                         
-                        val shoppingListDto = apiResponse.data
-                        android.util.Log.d("ShoppingRepositoryImpl", "ShoppingListDto: $shoppingListDto")
+                        val shoppingListDtos = apiResponse.data
+                        android.util.Log.d("ShoppingRepositoryImpl", "ShoppingListDtos count: ${shoppingListDtos.size}")
+                        android.util.Log.d("ShoppingRepositoryImpl", "ShoppingListDtos: $shoppingListDtos")
                         
-                        val shoppingList = shoppingListDto.toDomain()
-                        android.util.Log.d("ShoppingRepositoryImpl", "Converted to domain: $shoppingList")
-                        
-                        val shoppingLists = listOf(shoppingList)
-                        android.util.Log.d("ShoppingRepositoryImpl", "Final shopping lists count: ${shoppingLists.size}")
-                        android.util.Log.d("ShoppingRepositoryImpl", "Final shopping lists: $shoppingLists")
+                        val shoppingLists = shoppingListDtos.map { it.toDomain() }
+                        android.util.Log.d("ShoppingRepositoryImpl", "Converted to domain count: ${shoppingLists.size}")
+                        android.util.Log.d("ShoppingRepositoryImpl", "Converted to domain: $shoppingLists")
                         android.util.Log.d("ShoppingRepositoryImpl", "=== END getShoppingListsByHome SUCCESS ===")
                         Result.success(shoppingLists)
                     } else {
@@ -237,19 +279,29 @@ class ShoppingRepositoryImpl : ShoppingRepository {
     }
 
     override suspend fun updateShoppingItem(id: Int, item: ShoppingItem): Result<ShoppingItem> {
+        android.util.Log.d("ShoppingRepositoryImpl", "--- Preparing to update item ID: $id ---")
+        android.util.Log.d("ShoppingRepositoryImpl", "Domain object received: $item")
         return try {
-            val response = api.updateShoppingItem(id, item.toDto())
+            val itemDto = item.toDto().copy(id = null)
+            android.util.Log.d("ShoppingRepositoryImpl", "Converted to DTO for sending (ID removed from body): $itemDto")
+            val response = api.updateShoppingItem(id, itemDto)
+
             if (response.isSuccessful && response.body() != null) {
                 val apiResponse = response.body()!!
                 if (apiResponse.success) {
+                    android.util.Log.i("ShoppingRepositoryImpl", "Update successful for item $id. Server data: ${apiResponse.data}")
                     Result.success(apiResponse.data.toDomain())
                 } else {
+                     android.util.Log.e("ShoppingRepositoryImpl", "API returned success=false. Message: ${apiResponse.message}")
                     Result.failure(Exception(apiResponse.message ?: "Failed to update shopping item"))
                 }
             } else {
+                val errorBody = response.errorBody()?.string() ?: "No error body"
+                android.util.Log.e("ShoppingRepositoryImpl", "Update API call failed. Code: ${response.code()}, Message: ${response.message()}, Error Body: $errorBody")
                 Result.failure(Exception("Update shopping item failed: ${response.message()}"))
             }
         } catch (e: Exception) {
+            android.util.Log.e("ShoppingRepositoryImpl", "Exception during item update for ID $id", e)
             Result.failure(e)
         }
     }

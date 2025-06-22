@@ -14,7 +14,7 @@ interface ShoppingApi {
     suspend fun getShoppingListById(@Path("id") id: Int): Response<ApiResponse<ShoppingListDto>>
 
     @GET("api/shopping/shopping-lists/home/{homeId}")
-    suspend fun getShoppingListsByHome(@Path("homeId") homeId: Int): Response<ApiResponse<ShoppingListDto>>
+    suspend fun getShoppingListsByHome(@Path("homeId") homeId: Int): Response<ApiResponse<List<ShoppingListDto>>>
 
     @PUT("api/shopping/shopping-lists/{id}")
     suspend fun updateShoppingList(@Path("id") id: Int, @Body shoppingList: ShoppingListDto): Response<ApiResponse<ShoppingListDto>>

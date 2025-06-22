@@ -134,12 +134,32 @@ class ShoppingListsViewModel(
             val listId = shoppingList.id ?: return@forEach
 
             try {
-                val items = getItemsForList(listId)
-                itemsCache[listId] = items
+                // Se a lista já tem o total calculado pela API, usar esse valor
+                val totalPrice = if (shoppingList.total != null) {
+                    shoppingList.total.toFloat()
+                } else {
+                    // Caso contrário, calcular manualmente
+                    val items = getItemsForList(listId)
+                    itemsCache[listId] = items
+                    items.sumOf { (it.quantity * it.price).toDouble() }.toFloat()
+                }
 
-                val totalPrice = items.sumOf { (it.quantity * it.price).toDouble() }.toFloat()
-                val totalItems = items.size
-                val completedItems = items.count { it.state == "comprado" }
+                // Se a lista já tem os items, usar esses dados
+                val totalItems = if (shoppingList.shoppingItems != null) {
+                    shoppingList.shoppingItems.size
+                } else {
+                    val items = getItemsForList(listId)
+                    itemsCache[listId] = items
+                    items.size
+                }
+
+                val completedItems = if (shoppingList.shoppingItems != null) {
+                    shoppingList.shoppingItems.count { it.state == "comprado" }
+                } else {
+                    val items = getItemsForList(listId)
+                    itemsCache[listId] = items
+                    items.count { it.state == "comprado" }
+                }
 
                 listsWithTotals.add(
                     ShoppingListWithTotal(
@@ -150,13 +170,17 @@ class ShoppingListsViewModel(
                     )
                 )
             } catch (e: Exception) {
-                // Se falhar ao carregar itens de uma lista específica, continuar com as outras
+                // Se falhar ao carregar itens de uma lista específica, usar dados da API ou valores padrão
+                val totalPrice = shoppingList.total?.toFloat() ?: 0f
+                val totalItems = shoppingList.shoppingItems?.size ?: 0
+                val completedItems = shoppingList.shoppingItems?.count { it.state == "comprado" } ?: 0
+
                 listsWithTotals.add(
                     ShoppingListWithTotal(
                         shoppingList = shoppingList,
-                        totalPrice = 0f,
-                        totalItems = 0,
-                        completedItems = 0
+                        totalPrice = totalPrice,
+                        totalItems = totalItems,
+                        completedItems = completedItems
                     )
                 )
             }
@@ -203,7 +227,12 @@ class ShoppingListsViewModel(
     }
 
     fun createShoppingList(title: String, homeId: Int? = null) {
+        android.util.Log.d("ShoppingListsViewModel", "=== START createShoppingList ===")
+        android.util.Log.d("ShoppingListsViewModel", "Title: $title")
+        android.util.Log.d("ShoppingListsViewModel", "HomeId: $homeId")
+        
         if (!authRepository.isLoggedIn()) {
+            android.util.Log.e("ShoppingListsViewModel", "User not logged in")
             _uiState.value = _uiState.value.copy(
                 errorMessage = "Usuário não está logado"
             )
@@ -211,9 +240,21 @@ class ShoppingListsViewModel(
         }
 
         val targetHomeId = homeId ?: authRepository.getUserId()
+        android.util.Log.d("ShoppingListsViewModel", "Target homeId: $targetHomeId")
+        
         if (targetHomeId == null) {
+            android.util.Log.e("ShoppingListsViewModel", "Home ID not found")
             _uiState.value = _uiState.value.copy(
                 errorMessage = "ID da casa não encontrado"
+            )
+            return
+        }
+
+        val trimmedTitle = title.trim()
+        if (trimmedTitle.isBlank()) {
+            android.util.Log.e("ShoppingListsViewModel", "Title is blank")
+            _uiState.value = _uiState.value.copy(
+                errorMessage = "O título da lista não pode estar vazio"
             )
             return
         }
@@ -223,35 +264,54 @@ class ShoppingListsViewModel(
 
             try {
                 val newList = ShoppingList(
-                    title = title.trim(),
+                    title = trimmedTitle,
                     homeId = targetHomeId
                 )
+                android.util.Log.d("ShoppingListsViewModel", "Creating new list: $newList")
 
                 val result = repository.createShoppingList(newList)
                 result.onSuccess { createdList ->
-                    // Adicionar à lista local
-                    val updatedAllLists = _uiState.value.allShoppingLists + createdList
-                    _uiState.value = _uiState.value.copy(
-                        allShoppingLists = updatedAllLists,
-                        isLoading = false,
-                        isListCreated = true
-                    )
-
-                    // Recarregar totais
-                    loadListTotals(updatedAllLists)
+                    android.util.Log.d("ShoppingListsViewModel", "List created successfully: $createdList")
+                    
+                    // Recarregar todas as listas da API para garantir que temos os dados corretos
+                    val refreshResult = repository.getShoppingListsByHome(targetHomeId)
+                    refreshResult.onSuccess { updatedLists ->
+                        android.util.Log.d("ShoppingListsViewModel", "Lists refreshed from API: ${updatedLists.size} lists")
+                        _uiState.value = _uiState.value.copy(
+                            allShoppingLists = updatedLists,
+                            isLoading = false,
+                            isListCreated = true
+                        )
+                        
+                        // Recarregar totais
+                        loadListTotals(updatedLists)
+                    }.onFailure { refreshException ->
+                        android.util.Log.e("ShoppingListsViewModel", "Failed to refresh lists after creation", refreshException)
+                        // Se falhar ao recarregar, pelo menos adicionar à lista local
+                        val updatedAllLists = _uiState.value.allShoppingLists + createdList
+                        _uiState.value = _uiState.value.copy(
+                            allShoppingLists = updatedAllLists,
+                            isLoading = false,
+                            isListCreated = true
+                        )
+                        loadListTotals(updatedAllLists)
+                    }
                 }.onFailure { exception ->
+                    android.util.Log.e("ShoppingListsViewModel", "Failed to create list", exception)
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         errorMessage = "Erro ao criar lista: ${exception.message}"
                     )
                 }
             } catch (e: Exception) {
+                android.util.Log.e("ShoppingListsViewModel", "Unexpected error creating list", e)
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     errorMessage = "Erro inesperado: ${e.message}"
                 )
             }
         }
+        android.util.Log.d("ShoppingListsViewModel", "=== END createShoppingList ===")
     }
 
     fun updateShoppingList(listId: Int, title: String) {
@@ -496,5 +556,9 @@ class ShoppingListsViewModel(
 
     fun refreshLists() {
         loadShoppingListsForCurrentUser()
+    }
+
+    fun refreshListsByHome(homeId: Int) {
+        loadShoppingListsByHome(homeId)
     }
 }

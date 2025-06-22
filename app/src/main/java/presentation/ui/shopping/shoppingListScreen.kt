@@ -1,16 +1,21 @@
 package pt.ipca.hometask.presentation.ui.shopping
 
+import androidx.compose.foundation.background
 import modules.TopBar
 import modules.BottomMenuBar
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
@@ -22,6 +27,8 @@ import pt.ipca.hometask.R
 import pt.ipca.hometask.data.repository.ShoppingRepositoryImpl
 import pt.ipca.hometask.domain.model.ShoppingItem
 import pt.ipca.hometask.presentation.viewModel.shopping.ShoppingListViewModel
+import modules.ShoppingItem
+import modules.CustomButton
 
 @Composable
 fun ShoppingListScreen(
@@ -33,8 +40,7 @@ fun ShoppingListScreen(
     onLoginRequired: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    // Corrigido: agora passa Context em vez de Application
-    val viewModel = remember { ShoppingListViewModel(ShoppingRepositoryImpl(), context) }
+    val viewModel = remember { ShoppingListViewModel(ShoppingRepositoryImpl(context), context) }
     val uiState by viewModel.uiState.collectAsState()
 
     var showErrorDialog by remember { mutableStateOf(false) }
@@ -42,6 +48,14 @@ fun ShoppingListScreen(
     // Carregar lista quando componente for criado
     LaunchedEffect(listId) {
         viewModel.loadShoppingList(listId)
+    }
+
+    // Fecha o ecrã quando o save for concluído
+    LaunchedEffect(uiState.saveCompleted) {
+        if (uiState.saveCompleted) {
+            onBackClick()
+            viewModel.onSaveCompleted()
+        }
     }
 
     // Verificar se usuário está logado
@@ -68,6 +82,7 @@ fun ShoppingListScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .statusBarsPadding()
                 .padding(horizontal = 16.dp)
                 .padding(bottom = 70.dp)
         ) {
@@ -148,19 +163,22 @@ fun ShoppingListScreen(
                         }
                     } else {
                         uiState.shoppingItems.forEach { item ->
-                            ShoppingItemCard(
-                                item = item,
+                            ShoppingItem(
+                                itemName = item.description,
+                                quantity = item.quantity.toInt(),
+                                price = item.price.toDouble(),
+                                isCompleted = item.state == "comprado",
                                 onStatusChange = { completed ->
                                     viewModel.updateItemStatus(item.id!!, completed)
                                 },
                                 onQuantityChange = { newQuantity ->
-                                    viewModel.updateItemQuantity(item.id!!, newQuantity)
+                                    viewModel.updateItemQuantity(item.id!!, newQuantity.toFloat())
                                 },
                                 onRemoveItem = {
                                     viewModel.removeItem(item.id!!)
                                 }
                             )
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(16.dp))
                         }
                     }
                 }
@@ -215,16 +233,39 @@ fun ShoppingListScreen(
             }
 
             Spacer(modifier = Modifier.height(16.dp))
+        }
 
-            // Mostrar informações do usuário se necessário
-            uiState.shoppingList?.let { list ->
-                val (userId, userName, _) = viewModel.getCurrentUserInfo()
-                if (userName != null) {
-                    Text(
-                        text = "List owner: $userName",
-                        fontSize = 12.sp,
-                        color = colorResource(id = R.color.secondary_blue).copy(alpha = 0.6f)
-                    )
+        // Save Button
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter)
+                .padding(start = 16.dp, end = 16.dp, bottom = 80.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            if (!uiState.isLoading) {
+                 Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.fillMaxWidth().height(70.dp) // Match button height
+                ) {
+                    if (uiState.isSaving) {
+                        CircularProgressIndicator(
+                            color = colorResource(id = R.color.secondary_blue)
+                        )
+                    } else {
+                        val buttonEnabled = !uiState.isLoading
+                        Box(modifier = Modifier.alpha(if (buttonEnabled) 1f else 0.5f)) {
+                            CustomButton(
+                                text = "Guardar Alterações",
+                                onClick = {
+                                    if (buttonEnabled) {
+                                        viewModel.saveChanges()
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -285,62 +326,108 @@ fun ShoppingItemCard(
     onQuantityChange: (Float) -> Unit = {},
     onRemoveItem: () -> Unit = {}
 ) {
+    val cardColor = if (item.state == "comprado") {
+        colorResource(id = R.color.main_blue)
+    } else {
+        colorResource(id = R.color.main_blue)
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = if (item.state == "comprado")
-                colorResource(id = R.color.secondary_blue).copy(alpha = 0.1f)
-            else
-                Color.White
-        ),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = cardColor),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .height(IntrinsicSize.Min), // To make the divider cover the full height
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Checkbox(
-                checked = item.state == "comprado",
-                onCheckedChange = onStatusChange,
-                colors = CheckboxDefaults.colors(
-                    checkedColor = colorResource(id = R.color.secondary_blue)
-                )
-            )
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Column(
-                modifier = Modifier.weight(1f)
+            // Checkbox part
+            Box(
+                modifier = Modifier
+                    .background(
+                        color = if (item.state == "comprado")
+                            colorResource(id = R.color.main_blue)
+                        else
+                            colorResource(id = R.color.secondary_blue),
+                        shape = RoundedCornerShape(
+                            topStart = 12.dp,
+                            bottomStart = 12.dp
+                        )
+                    )
+                    .padding(horizontal = 16.dp, vertical = 20.dp),
+                contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = item.description,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = colorResource(id = R.color.secondary_blue)
-                )
-                Text(
-                    text = "Qty: ${item.quantity.toInt()} • $${String.format("%.2f", item.price)} each",
-                    fontSize = 14.sp,
-                    color = colorResource(id = R.color.secondary_blue).copy(alpha = 0.7f)
-                )
-                Text(
-                    text = "Total: $${String.format("%.2f", item.quantity * item.price)}",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = colorResource(id = R.color.secondary_blue)
+                Checkbox(
+                    checked = item.state == "comprado",
+                    onCheckedChange = onStatusChange,
+                    colors = CheckboxDefaults.colors(
+                        checkedColor = Color.White,
+                        uncheckedColor = Color.White,
+                        checkmarkColor = colorResource(id = R.color.main_blue)
+                    )
                 )
             }
 
-            TextButton(
-                onClick = onRemoveItem
+            // Item details part
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 Text(
-                    text = "Remove",
-                    color = Color.Red,
-                    fontSize = 12.sp
+                    text = item.description,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
                 )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = { onQuantityChange(item.quantity - 1) }) {
+                        Icon(
+                            imageVector = Icons.Default.Remove,
+                            contentDescription = "Decrease quantity",
+                            tint = Color.White
+                        )
+                    }
+                    Text(
+                        text = item.quantity.toInt().toString(),
+                        fontSize = 16.sp,
+                        color = Color.White,
+                        modifier = Modifier.padding(horizontal = 8.dp)
+                    )
+                    IconButton(onClick = { onQuantityChange(item.quantity + 1) }) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Increase quantity",
+                            tint = Color.White
+                        )
+                    }
+                }
+            }
+
+            // Price and Remove button
+            Column(
+                horizontalAlignment = Alignment.End,
+                modifier = Modifier.padding(end = 16.dp)
+            ) {
+                IconButton(onClick = onRemoveItem) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Remove item",
+                        tint = Color.White
+                    )
+                }
+                Spacer(modifier = Modifier.weight(1f))
+                Text(
+                    text = "$${String.format("%.2f", item.price)}",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+                Spacer(modifier = Modifier.height(8.dp))
             }
         }
     }

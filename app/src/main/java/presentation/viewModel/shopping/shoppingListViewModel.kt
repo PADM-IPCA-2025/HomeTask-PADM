@@ -14,6 +14,8 @@ import pt.ipca.hometask.domain.repository.ShoppingRepository
 
 data class ShoppingListUiState(
     val isLoading: Boolean = false,
+    val isSaving: Boolean = false,
+    val saveCompleted: Boolean = false,
     val shoppingList: ShoppingList? = null,
     val shoppingItems: List<ShoppingItem> = emptyList(),
     val errorMessage: String? = null,
@@ -32,6 +34,13 @@ class ShoppingListViewModel(
     private val _uiState = MutableStateFlow(ShoppingListUiState())
     val uiState: StateFlow<ShoppingListUiState> = _uiState.asStateFlow()
 
+    // Store the original list to compare changes
+    private var originalShoppingItems: List<ShoppingItem> = emptyList()
+
+    // Keep track of changes
+    private val updatedItemIds = mutableSetOf<Int>()
+    private val removedItemIds = mutableSetOf<Int>()
+
     init {
         checkUserAuthentication()
     }
@@ -43,7 +52,11 @@ class ShoppingListViewModel(
     }
 
     fun loadShoppingList(listId: Int) {
+        android.util.Log.d("ShoppingListViewModel", "--- loadShoppingList START ---")
+        android.util.Log.d("ShoppingListViewModel", "Attempting to load list with id: $listId")
+
         if (!authRepository.isLoggedIn()) {
+            android.util.Log.w("ShoppingListViewModel", "User is not logged in.")
             _uiState.value = _uiState.value.copy(
                 errorMessage = "Usuário não está logado",
                 isUserLoggedIn = false
@@ -53,61 +66,74 @@ class ShoppingListViewModel(
 
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+            android.util.Log.d("ShoppingListViewModel", "Set state to loading.")
 
             try {
-                // Carregar a lista de compras
+                android.util.Log.d("ShoppingListViewModel", "Calling repository.getShoppingListById($listId)")
                 val listResult = repository.getShoppingListById(listId)
-                listResult.onSuccess { shoppingList ->
-                    val userId = authRepository.getUserId()
 
-                    // Verificar se o usuário tem permissão para acessar esta lista
+                listResult.onSuccess { shoppingList ->
+                    android.util.Log.i("ShoppingListViewModel", "Successfully fetched shopping list: $shoppingList")
+                    val userId = authRepository.getUserId()
+                    android.util.Log.d("ShoppingListViewModel", "Current user id: $userId, List homeId: ${shoppingList.homeId}")
+
                     if (userId != null && (shoppingList.homeId == userId || authRepository.isAdmin())) {
+                        android.util.Log.d("ShoppingListViewModel", "User has permission. Updating state.")
                         _uiState.value = _uiState.value.copy(
                             shoppingList = shoppingList
                         )
-
-                        // Carregar os itens da lista usando a API real
                         loadShoppingItems(listId)
                     } else {
+                        android.util.Log.w("ShoppingListViewModel", "User does not have permission.")
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
                             errorMessage = "Você não tem permissão para acessar esta lista"
                         )
                     }
                 }.onFailure { exception ->
+                    android.util.Log.e("ShoppingListViewModel", "Failed to fetch shopping list.", exception)
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         errorMessage = "Erro ao carregar lista: ${exception.message}"
                     )
                 }
             } catch (e: Exception) {
+                android.util.Log.e("ShoppingListViewModel", "An unexpected error occurred in loadShoppingList.", e)
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     errorMessage = "Erro inesperado: ${e.message}"
                 )
             }
+            android.util.Log.d("ShoppingListViewModel", "--- loadShoppingList END ---")
         }
     }
 
     // CORRIGIDO: Agora usa a API real em vez de dados mockados
     private suspend fun loadShoppingItems(listId: Int) {
+        android.util.Log.d("ShoppingListViewModel", "--- loadShoppingItems START for listId: $listId ---")
         try {
             val itemsResult = repository.getItemsByShoppingList(listId)
             itemsResult.onSuccess { items ->
+                android.util.Log.i("ShoppingListViewModel", "Successfully fetched ${items.size} items: $items")
+                originalShoppingItems = items // Store the original list
                 updateShoppingItems(items)
                 _uiState.value = _uiState.value.copy(isLoading = false)
+                android.util.Log.d("ShoppingListViewModel", "Set state to not loading.")
             }.onFailure { exception ->
+                android.util.Log.e("ShoppingListViewModel", "Failed to fetch shopping items.", exception)
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     errorMessage = "Erro ao carregar itens: ${exception.message}"
                 )
             }
         } catch (e: Exception) {
+            android.util.Log.e("ShoppingListViewModel", "An unexpected error occurred in loadShoppingItems.", e)
             _uiState.value = _uiState.value.copy(
                 isLoading = false,
                 errorMessage = "Erro inesperado ao carregar itens: ${e.message}"
             )
         }
+        android.util.Log.d("ShoppingListViewModel", "--- loadShoppingItems END ---")
     }
 
     private fun updateShoppingItems(items: List<ShoppingItem>) {
@@ -124,114 +150,111 @@ class ShoppingListViewModel(
     }
 
     fun updateItemStatus(itemId: Int, completed: Boolean) {
-        if (!authRepository.isLoggedIn()) {
-            _uiState.value = _uiState.value.copy(
-                errorMessage = "Usuário não está logado"
+        val currentItems = _uiState.value.shoppingItems.toMutableList()
+        val itemIndex = currentItems.indexOfFirst { it.id == itemId }
+
+        if (itemIndex != -1) {
+            val updatedItem = currentItems[itemIndex].copy(
+                state = if (completed) "comprado" else "pendente"
             )
-            return
-        }
-
-        viewModelScope.launch {
-            try {
-                val currentItems = _uiState.value.shoppingItems
-                val itemToUpdate = currentItems.find { it.id == itemId }
-
-                itemToUpdate?.let { item ->
-                    val updatedItem = item.copy(
-                        state = if (completed) "comprado" else "pendente"
-                    )
-
-                    val result = repository.updateShoppingItem(itemId, updatedItem)
-                    result.onSuccess { updatedFromServer ->
-                        // Usar a resposta do servidor para garantir consistência
-                        val updatedItems = currentItems.map {
-                            if (it.id == itemId) updatedFromServer else it
-                        }
-                        updateShoppingItems(updatedItems)
-                    }.onFailure { exception ->
-                        _uiState.value = _uiState.value.copy(
-                            errorMessage = "Erro ao atualizar item: ${exception.message}"
-                        )
-                    }
-                }
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    errorMessage = "Erro inesperado: ${e.message}"
-                )
-            }
+            currentItems[itemIndex] = updatedItem
+            updatedItemIds.add(itemId) // Track updated item
+            updateShoppingItems(currentItems)
         }
     }
 
     fun updateItemQuantity(itemId: Int, newQuantity: Float) {
-        if (!authRepository.isLoggedIn()) {
-            _uiState.value = _uiState.value.copy(
-                errorMessage = "Usuário não está logado"
-            )
-            return
-        }
+        if (newQuantity <= 0) return
 
-        if (newQuantity <= 0) {
-            _uiState.value = _uiState.value.copy(
-                errorMessage = "Quantidade deve ser maior que zero"
-            )
-            return
-        }
+        val currentItems = _uiState.value.shoppingItems.toMutableList()
+        val itemIndex = currentItems.indexOfFirst { it.id == itemId }
 
-        viewModelScope.launch {
-            try {
-                val currentItems = _uiState.value.shoppingItems
-                val itemToUpdate = currentItems.find { it.id == itemId }
-
-                itemToUpdate?.let { item ->
-                    val updatedItem = item.copy(quantity = newQuantity)
-
-                    val result = repository.updateShoppingItem(itemId, updatedItem)
-                    result.onSuccess { updatedFromServer ->
-                        // Usar a resposta do servidor para garantir consistência
-                        val updatedItems = currentItems.map {
-                            if (it.id == itemId) updatedFromServer else it
-                        }
-                        updateShoppingItems(updatedItems)
-                    }.onFailure { exception ->
-                        _uiState.value = _uiState.value.copy(
-                            errorMessage = "Erro ao atualizar quantidade: ${exception.message}"
-                        )
-                    }
-                }
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    errorMessage = "Erro inesperado: ${e.message}"
-                )
-            }
+        if (itemIndex != -1) {
+            val updatedItem = currentItems[itemIndex].copy(quantity = newQuantity)
+            currentItems[itemIndex] = updatedItem
+            updatedItemIds.add(itemId) // Track updated item
+            updateShoppingItems(currentItems)
         }
     }
 
     fun removeItem(itemId: Int) {
+        removedItemIds.add(itemId)
+        updatedItemIds.remove(itemId) // No need to update if it's being removed
+        val currentItems = _uiState.value.shoppingItems
+        val updatedItems = currentItems.filter { it.id != itemId }
+        updateShoppingItems(updatedItems)
+    }
+
+    fun saveChanges() {
         if (!authRepository.isLoggedIn()) {
-            _uiState.value = _uiState.value.copy(
-                errorMessage = "Usuário não está logado"
-            )
+            _uiState.value = _uiState.value.copy(errorMessage = "User not logged in")
             return
         }
 
         viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isSaving = true, errorMessage = null)
+            android.util.Log.d("ShoppingListViewModel", "--- Starting saveChanges ---")
+
             try {
-                val result = repository.deleteShoppingItem(itemId)
-                result.onSuccess {
-                    val currentItems = _uiState.value.shoppingItems
-                    val updatedItems = currentItems.filter { it.id != itemId }
-                    updateShoppingItems(updatedItems)
-                }.onFailure { exception ->
-                    _uiState.value = _uiState.value.copy(
-                        errorMessage = "Erro ao remover item: ${exception.message}"
-                    )
+                // Process removals
+                if (removedItemIds.isNotEmpty()) {
+                    android.util.Log.d("ShoppingListViewModel", "Deleting items: $removedItemIds")
+                    removedItemIds.forEach { itemId ->
+                        val result = repository.deleteShoppingItem(itemId)
+                        result.onSuccess {
+                            android.util.Log.i("ShoppingListViewModel", "Successfully deleted item $itemId")
+                        }.onFailure { exception ->
+                            android.util.Log.e("ShoppingListViewModel", "Failed to delete item $itemId", exception)
+                        }
+                    }
                 }
+
+                // Process updates
+                if (updatedItemIds.isNotEmpty()){
+                    android.util.Log.d("ShoppingListViewModel", "Updating items: $updatedItemIds")
+                    val currentItems = _uiState.value.shoppingItems
+                    val listId = _uiState.value.shoppingList?.id
+                    if (listId == null) {
+                        android.util.Log.e("ShoppingListViewModel", "Cannot update items, shoppingListId is null")
+                        _uiState.value = _uiState.value.copy(errorMessage = "Error: Shopping List ID is missing.")
+                        return@launch
+                    }
+
+                    updatedItemIds.forEach { itemId ->
+                        val itemToUpdate = currentItems.find { it.id == itemId }
+                        itemToUpdate?.let {
+                            // Ensure the shoppingListId is correct and set category to 1 before sending
+                            val finalItem = it.copy(
+                                shoppingListId = listId,
+                                itemCategoryId = 1 // Hardcoding category ID to 1 as requested
+                            )
+                            val result = repository.updateShoppingItem(finalItem.id!!, finalItem)
+                            result.onSuccess { updatedItem ->
+                                android.util.Log.i("ShoppingListViewModel", "Successfully updated item $itemId. Server response: $updatedItem")
+                            }.onFailure { exception ->
+                                 android.util.Log.e("ShoppingListViewModel", "Failed to update item $itemId", exception)
+                            }
+                        }
+                    }
+                }
+
+                // Clear tracked changes and signal completion
+                removedItemIds.clear()
+                updatedItemIds.clear()
+                _uiState.value = _uiState.value.copy(saveCompleted = true)
+                 android.util.Log.d("ShoppingListViewModel", "--- saveChanges completed successfully ---")
+
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    errorMessage = "Erro inesperado: ${e.message}"
-                )
+                 _uiState.value = _uiState.value.copy(errorMessage = "Error saving changes: ${e.message}")
+                 android.util.Log.e("ShoppingListViewModel", "--- saveChanges failed with exception ---", e)
+            } finally {
+                _uiState.value = _uiState.value.copy(isSaving = false)
             }
         }
+    }
+
+    fun onSaveCompleted() {
+        _uiState.value = _uiState.value.copy(saveCompleted = false)
     }
 
     fun refreshList() {

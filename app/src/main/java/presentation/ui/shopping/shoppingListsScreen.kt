@@ -40,7 +40,9 @@ fun ShoppingListsScreen(
     historyLists: List<ShoppingList> = emptyList(),
     selectedTab: ShoppingListTab = ShoppingListTab.IN_PROGRESS,
     onTabSelected: (ShoppingListTab) -> Unit = {},
-    isLoading: Boolean = false
+    isLoading: Boolean = false,
+    inProgressTotals: List<Double> = emptyList(),
+    historyTotals: List<Double> = emptyList()
 ) {
     val currentLists = when (selectedTab) {
         ShoppingListTab.IN_PROGRESS -> inProgressLists
@@ -52,7 +54,7 @@ fun ShoppingListsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 16.dp)
-                .padding(bottom = 70.dp)
+                .padding(bottom = 120.dp)
         ) {
             Spacer(modifier = Modifier.height(40.dp))
             Spacer(modifier = Modifier.height(24.dp))
@@ -105,11 +107,17 @@ fun ShoppingListsScreen(
                         .weight(1f)
                         .verticalScroll(rememberScrollState())
                 ) {
-                    currentLists.forEach { shoppingList ->
+                    val currentTotals = when (selectedTab) {
+                        ShoppingListTab.IN_PROGRESS -> inProgressTotals
+                        ShoppingListTab.HISTORY -> historyTotals
+                    }
+                    
+                    currentLists.forEachIndexed { index, shoppingList ->
                         ShoppingListCard(
                             shoppingList = shoppingList,
                             isHistory = selectedTab == ShoppingListTab.HISTORY,
-                            onClick = { onListClick(shoppingList.id ?: 0) }
+                            onClick = { onListClick(shoppingList.id ?: 0) },
+                            total = if (index < currentTotals.size) currentTotals[index] else 0.0
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                     }
@@ -182,18 +190,9 @@ fun ShoppingListsScreen(
 fun ShoppingListCard(
     shoppingList: ShoppingList,
     isHistory: Boolean = false,
-    onClick: () -> Unit = {}
+    onClick: () -> Unit = {},
+    total: Double = 0.0
 ) {
-    // Calcular total mockado (você substituirá pela lógica real)
-    val mockTotal = when {
-        shoppingList.title.contains("Biedronka", ignoreCase = true) -> 139.00
-        shoppingList.title.contains("John Doe", ignoreCase = true) -> 15.96
-        shoppingList.title.contains("Jane Doe", ignoreCase = true) -> 35.21
-        shoppingList.title.contains("Weekly", ignoreCase = true) -> 42.50
-        shoppingList.title.contains("Party", ignoreCase = true) -> 87.30
-        else -> 25.75
-    }
-
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -220,7 +219,7 @@ fun ShoppingListCard(
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(
-                        text = shoppingList.title,
+                        text = shoppingList.title ?: "Untitled List",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Medium,
                         color = colorResource(id = R.color.secondary_blue)
@@ -269,7 +268,7 @@ fun ShoppingListCard(
                     color = colorResource(id = R.color.secondary_blue)
                 )
                 Text(
-                    text = "$${String.format("%.2f", mockTotal)}",
+                    text = "$${String.format("%.2f", total)}",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = colorResource(id = R.color.secondary_blue)
@@ -353,7 +352,9 @@ fun ShoppingListsScreenPreview() {
         onProfileClick = { /* Profile */ },
         onClosestSupermarketClick = { /* Supermercado mais próximo */ },
         onAddClick = { /* Adicionar lista */ },
-        onTabSelected = { /* Trocar aba */ }
+        onTabSelected = { /* Trocar aba */ },
+        inProgressTotals = listOf(42.50, 87.30),
+        historyTotals = listOf(139.00, 35.21)
     )
 }
 
@@ -385,6 +386,8 @@ fun ShoppingListsScreenHistoryPreview() {
         onProfileClick = { /* Profile */ },
         onClosestSupermarketClick = { /* Supermercado mais próximo */ },
         onAddClick = { /* Adicionar lista */ },
-        onTabSelected = { /* Trocar aba */ }
+        onTabSelected = { /* Trocar aba */ },
+        inProgressTotals = emptyList(),
+        historyTotals = listOf(139.00, 35.21)
     )
 }

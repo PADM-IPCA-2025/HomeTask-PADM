@@ -32,7 +32,7 @@ fun ShoppingListsScreenContainer(
     onLoginRequired: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    val viewModel = remember { ShoppingListsViewModel(ShoppingRepositoryImpl(), context) }
+    val viewModel = remember { ShoppingListsViewModel(ShoppingRepositoryImpl(context), context) }
     val uiState by viewModel.uiState.collectAsState()
 
     var showErrorDialog by remember { mutableStateOf(false) }
@@ -69,6 +69,8 @@ fun ShoppingListsScreenContainer(
             viewModel.resetCreatedState()
             showCreateListDialog = false
             newListTitle = ""
+            // Mostrar mensagem de sucesso (opcional)
+            android.util.Log.d("ShoppingListsScreenContainer", "Shopping list created successfully!")
         }
     }
 
@@ -84,7 +86,9 @@ fun ShoppingListsScreenContainer(
             historyLists = uiState.historyLists.map { it.shoppingList },
             selectedTab = uiState.selectedTab,
             onTabSelected = { tab -> viewModel.selectTab(tab) },
-            isLoading = uiState.isLoading
+            isLoading = uiState.isLoading,
+            inProgressTotals = uiState.inProgressLists.map { it.totalPrice.toDouble() },
+            historyTotals = uiState.historyLists.map { it.totalPrice.toDouble() }
         )
 
 

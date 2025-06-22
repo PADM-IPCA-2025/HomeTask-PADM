@@ -7,7 +7,9 @@ import modules.BottomMenuBar
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.*
@@ -35,7 +37,7 @@ fun AddItemScreen(
     onLoginRequired: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    val viewModel = remember { AddItemViewModel(ShoppingRepositoryImpl(), context) }
+    val viewModel = remember { AddItemViewModel(ShoppingRepositoryImpl(context), context) }
     val uiState by viewModel.uiState.collectAsState()
     val itemName by viewModel.itemName.collectAsState()
     val quantity by viewModel.quantity.collectAsState()
@@ -74,8 +76,10 @@ fun AddItemScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .statusBarsPadding()
                 .padding(horizontal = 16.dp)
-                .padding(bottom = 140.dp)
+                .padding(bottom = 220.dp)
+                .verticalScroll(rememberScrollState())
         ) {
             TopBar(
                 title = "Add Item",
@@ -85,113 +89,85 @@ fun AddItemScreen(
             Spacer(modifier = Modifier.height(40.dp))
 
             // Item Name
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.Start
-            ) {
-                CustomTextBox(
-                    value = itemName,
-                    onValueChange = { viewModel.updateItemName(it) },
-                    placeholder = "Item Name"
-                )
-            }
+            Text(
+                text = "Item Name",
+                fontSize = 14.sp,
+                color = colorResource(id = R.color.secondary_blue).copy(alpha = 0.7f),
+                modifier = Modifier.padding(start = 24.dp, bottom = 8.dp)
+            )
+            CustomTextBox(
+                value = itemName,
+                onValueChange = { viewModel.updateItemName(it) },
+                placeholder = "Enter item name",
+                modifier = Modifier
+                    .fillMaxWidth(0.9f)
+                    .padding(start = 24.dp)
+            )
 
             Spacer(modifier = Modifier.height(24.dp))
 
             // Quantity
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.Start
-            ) {
-                CustomTextBox(
-                    value = quantity,
-                    onValueChange = { viewModel.updateQuantity(it) },
-                    placeholder = "Quantity",
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number
-                    )
-                )
-            }
+            Text(
+                text = "Quantity",
+                fontSize = 14.sp,
+                color = colorResource(id = R.color.secondary_blue).copy(alpha = 0.7f),
+                modifier = Modifier.padding(start = 24.dp, bottom = 8.dp)
+            )
+            CustomTextBox(
+                value = quantity,
+                onValueChange = { viewModel.updateQuantity(it) },
+                placeholder = "Enter quantity",
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier
+                    .fillMaxWidth(0.9f)
+                    .padding(start = 24.dp)
+            )
 
             Spacer(modifier = Modifier.height(24.dp))
 
             // Price per unit
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.Start
-            ) {
-                CustomTextBox(
-                    value = pricePerUnit,
-                    onValueChange = { viewModel.updatePricePerUnit(it) },
-                    placeholder = "Price p/ unit",
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Decimal
-                    )
-                )
-            }
+            Text(
+                text = "Price p/ unit",
+                fontSize = 14.sp,
+                color = colorResource(id = R.color.secondary_blue).copy(alpha = 0.7f),
+                modifier = Modifier.padding(start = 24.dp, bottom = 8.dp)
+            )
+            CustomTextBox(
+                value = pricePerUnit,
+                onValueChange = { viewModel.updatePricePerUnit(it) },
+                placeholder = "Enter price per unit",
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier = Modifier
+                    .fillMaxWidth(0.9f)
+                    .padding(start = 24.dp)
+            )
 
             Spacer(modifier = Modifier.height(24.dp))
 
             // Category Dropdown
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.Start
-            ) {
-                Box(
-                    modifier = Modifier
-                        .width(328.dp)
-                        .height(60.dp)
-                        .clickable {
-                            if (!uiState.isLoading && uiState.categories.isNotEmpty()) {
-                                showCategoryDialog = true
-                            }
-                        }
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = uiState.selectedCategory?.description ?: "Category",
-                            fontSize = 16.sp,
-                            color = if (uiState.selectedCategory == null)
-                                colorResource(id = R.color.secondary_blue).copy(alpha = 0.6f)
-                            else
-                                colorResource(id = R.color.secondary_blue)
-                        )
-
-                        if (uiState.isLoading && uiState.categories.isEmpty()) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                color = colorResource(id = R.color.secondary_blue),
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Default.KeyboardArrowDown,
-                                contentDescription = "Dropdown",
-                                tint = colorResource(id = R.color.secondary_blue),
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
+            Text(
+                text = "Category",
+                fontSize = 14.sp,
+                color = colorResource(id = R.color.secondary_blue).copy(alpha = 0.7f),
+                modifier = Modifier.padding(start = 24.dp, bottom = 8.dp)
+            )
+            DropdownField(
+                value = uiState.selectedCategory?.description ?: "",
+                placeholder = "Select category",
+                isLoading = uiState.isLoading && uiState.categories.isEmpty(),
+                onClick = {
+                    if (!uiState.isLoading && uiState.categories.isNotEmpty()) {
+                        showCategoryDialog = true
                     }
+                },
+                modifier = Modifier
+                    .fillMaxWidth(0.9f)
+                    .padding(start = 24.dp)
+            )
 
-                    HorizontalDivider(
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .fillMaxWidth(),
-                        color = colorResource(id = R.color.secondary_blue),
-                        thickness = 1.dp
-                    )
-                }
-            }
-
-            // Mostrar informações do usuário se necessário
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Mostrar informações do usuário se necessário
             uiState.currentUserName?.let { userName ->
                 Text(
                     text = "Adding item for: $userName",
@@ -207,7 +183,7 @@ fun AddItemScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
-                .padding(start = 16.dp, end = 16.dp, bottom = 140.dp),
+                .padding(start = 16.dp, end = 16.dp, bottom = 80.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             CustomButton(
@@ -374,16 +350,72 @@ fun AddItemScreenContainer(
     )
 }
 
+@Composable
+private fun DropdownField(
+    value: String,
+    placeholder: String,
+    isLoading: Boolean = false,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .width(328.dp)
+            .height(60.dp)
+            .clickable { if (!isLoading) onClick() }
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = if (value.isEmpty()) placeholder else value,
+                fontSize = 16.sp,
+                color = if (value.isEmpty())
+                    colorResource(id = R.color.secondary_blue).copy(alpha = 0.6f)
+                else
+                    colorResource(id = R.color.secondary_blue)
+            )
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    color = colorResource(id = R.color.secondary_blue),
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowDown,
+                    contentDescription = "Dropdown",
+                    tint = colorResource(id = R.color.secondary_blue),
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
+        HorizontalDivider(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth(),
+            color = colorResource(id = R.color.secondary_blue),
+            thickness = 1.dp
+        )
+    }
+}
+
 @Preview(showBackground = true)
 @Composable
 fun AddItemScreenPreview() {
-    // Preview usando dados mockados
+    // Preview using data mockados
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 16.dp)
-                .padding(bottom = 140.dp)
+                .padding(top = 48.dp)
+                .padding(bottom = 220.dp)
+                .verticalScroll(rememberScrollState())
         ) {
             TopBar(
                 title = "Add Item",
@@ -391,78 +423,27 @@ fun AddItemScreenPreview() {
             )
 
             Spacer(modifier = Modifier.height(40.dp))
-
-            CustomTextBox(
-                value = "Leite",
-                onValueChange = { },
-                placeholder = "Item Name"
-            )
-
+            Text("Item Name", fontSize = 14.sp, color = Color.Gray, modifier = Modifier.padding(bottom = 8.dp))
+            CustomTextBox(value = "Leite", onValueChange = { }, placeholder = "Enter item name")
             Spacer(modifier = Modifier.height(24.dp))
-
-            CustomTextBox(
-                value = "2",
-                onValueChange = { },
-                placeholder = "Quantity"
-            )
-
+            Text("Quantity", fontSize = 14.sp, color = Color.Gray, modifier = Modifier.padding(bottom = 8.dp))
+            CustomTextBox(value = "2", onValueChange = { }, placeholder = "Enter quantity")
             Spacer(modifier = Modifier.height(24.dp))
-
-            CustomTextBox(
-                value = "1.50",
-                onValueChange = { },
-                placeholder = "Price p/ unit"
-            )
-
+            Text("Price p/ unit", fontSize = 14.sp, color = Color.Gray, modifier = Modifier.padding(bottom = 8.dp))
+            CustomTextBox(value = "1.50", onValueChange = { }, placeholder = "Enter price per unit")
             Spacer(modifier = Modifier.height(24.dp))
-
-            Box(
-                modifier = Modifier
-                    .width(328.dp)
-                    .height(60.dp)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "Laticínios",
-                        fontSize = 16.sp,
-                        color = colorResource(id = R.color.secondary_blue)
-                    )
-
-                    Icon(
-                        imageVector = Icons.Default.KeyboardArrowDown,
-                        contentDescription = "Dropdown",
-                        tint = colorResource(id = R.color.secondary_blue),
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-
-                HorizontalDivider(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth(),
-                    color = colorResource(id = R.color.secondary_blue),
-                    thickness = 1.dp
-                )
-            }
+            Text("Category", fontSize = 14.sp, color = Color.Gray, modifier = Modifier.padding(bottom = 8.dp))
+            DropdownField(value = "Laticínios", placeholder = "Select category", onClick = {})
         }
 
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
-                .padding(start = 16.dp, end = 16.dp, bottom = 140.dp),
+                .padding(start = 16.dp, end = 16.dp, bottom = 80.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            CustomButton(
-                text = "Save",
-                onClick = { }
-            )
+            CustomButton(text = "Save", onClick = { })
         }
 
         Box(
@@ -470,10 +451,7 @@ fun AddItemScreenPreview() {
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
         ) {
-            BottomMenuBar(
-                onHomeClick = { },
-                onProfileClick = { }
-            )
+            BottomMenuBar(onHomeClick = { }, onProfileClick = { })
         }
     }
 }

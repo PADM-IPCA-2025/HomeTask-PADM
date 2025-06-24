@@ -6,21 +6,42 @@ import modules.CustomButton
 import modules.BottomMenuBar
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.background
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import pt.ipca.hometask.presentation.viewModel.home.InviteResidentViewModel
 
 @Composable
 fun InviteResidentScreen(
     onBackClick: () -> Unit = {},
-    onSendClick: (String) -> Unit = {},
     onHomeClick: () -> Unit = {},
-    onProfileClick: () -> Unit = {}
+    onProfileClick: () -> Unit = {},
+    homeId: Int,
+    viewModel: InviteResidentViewModel = viewModel()
 ) {
     var emailOrPhone by remember { mutableStateOf("") }
+    val isLoading = viewModel.isLoading.value
+    val errorMessage = viewModel.errorMessage.value
+    val inviteSuccess = viewModel.inviteSuccess.value
+
+    // Carregar utilizadores quando a tela é exibida
+    LaunchedEffect(Unit) {
+        viewModel.loadAllUsers()
+    }
+
+    // Navegar de volta quando o convite for bem-sucedido
+    LaunchedEffect(inviteSuccess) {
+        if (inviteSuccess) {
+            onBackClick()
+            viewModel.clearInviteSuccess()
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -49,6 +70,16 @@ fun InviteResidentScreen(
                     keyboardType = KeyboardType.Email
                 )
             )
+
+            // Mostrar erro se houver
+            if (errorMessage != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                androidx.compose.material3.Text(
+                    text = errorMessage!!,
+                    color = androidx.compose.ui.graphics.Color.Red,
+                    fontSize = 14.sp
+                )
+            }
         }
 
         Column(
@@ -59,8 +90,12 @@ fun InviteResidentScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             CustomButton(
-                text = "Send",
-                onClick = { onSendClick(emailOrPhone) }
+                text = if (isLoading) "Sending..." else "Send",
+                onClick = { 
+                    if (!isLoading) {
+                        viewModel.inviteResidentByEmail(emailOrPhone, homeId)
+                    }
+                }
             )
         }
 
@@ -74,6 +109,18 @@ fun InviteResidentScreen(
                 onProfileClick = onProfileClick
             )
         }
+
+        // Loading overlay
+        if (isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.5f)),
+                contentAlignment = Alignment.Center
+            ) {
+                androidx.compose.material3.CircularProgressIndicator()
+            }
+        }
     }
 }
 
@@ -82,8 +129,8 @@ fun InviteResidentScreen(
 fun InviteResidentScreenPreview() {
     InviteResidentScreen(
         onBackClick = { /* Voltar */ },
-        onSendClick = { /* Enviar convite */ },
         onHomeClick = { /* Home */ },
-        onProfileClick = { /* Profile */ }
+        onProfileClick = { /* Profile */ },
+        homeId = 0
     )
 }

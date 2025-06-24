@@ -1,7 +1,8 @@
 package pt.ipca.hometask.presentation.viewModel.task
 
+import android.app.Application
 import androidx.compose.runtime.mutableStateOf
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 import pt.ipca.hometask.data.remote.api.HomeTaskApi
@@ -12,11 +13,12 @@ import pt.ipca.hometask.domain.model.Task
 import pt.ipca.hometask.domain.repository.TaskRepository
 import pt.ipca.hometask.domain.repository.ResidentRepository
 import pt.ipca.hometask.network.RetrofitClient
+import pt.ipca.hometask.utils.ImageUtils
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-class AddTaskViewModel : ViewModel() {
+class AddTaskViewModel(application: Application) : AndroidViewModel(application) {
     private val taskRepository: TaskRepository = TaskRepositoryImpl()
     private val api: HomeTaskApi = RetrofitClient.homeTaskApi
     private val residentRepository: ResidentRepository = ResidentRepositoryImpl()
@@ -56,6 +58,7 @@ class AddTaskViewModel : ViewModel() {
         selectedResidentId: Int?,
         status: String,
         date: String,
+        photo: String?,
         homeId: Int,
         userId: Int
     ) {
@@ -64,15 +67,39 @@ class AddTaskViewModel : ViewModel() {
             errorMessage.value = null
             success.value = false
             val currentDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-            android.util.Log.d("AddTaskViewModel", "Iniciando criação de task: title=$title, desc=$description, selectedResidentId=$selectedResidentId, status=$status, date=$currentDate, homeId=$homeId, userId=$userId, categoryId=1, photo=photo_url")
+            
+            android.util.Log.d("AddTaskViewModel", "Iniciando criação de task: title=$title, desc=$description, selectedResidentId=$selectedResidentId, status=$status, date=$currentDate, photo=$photo, homeId=$homeId, userId=$userId, categoryId=1")
+            
             try {
+                // Copiar imagem para armazenamento interno se for um content URI
+                val processedPhoto = if (ImageUtils.isContentUri(photo)) {
+                    android.util.Log.d("AddTaskViewModel", "📸 Detected content URI: $photo")
+                    android.util.Log.d("AddTaskViewModel", "📸 Copiando imagem para armazenamento interno...")
+                    val permanentUri = ImageUtils.copyImageToInternalStorage(getApplication(), photo)
+                    if (permanentUri != null) {
+                        android.util.Log.d("AddTaskViewModel", "✅ Imagem copiada com sucesso: $permanentUri")
+                        permanentUri
+                    } else {
+                        android.util.Log.w("AddTaskViewModel", "⚠️ Falha ao copiar imagem, usando URI original")
+                        photo
+                    }
+                } else if (ImageUtils.isFileUri(photo)) {
+                    android.util.Log.d("AddTaskViewModel", "📁 Detected file URI: $photo")
+                    photo
+                } else {
+                    android.util.Log.d("AddTaskViewModel", "🔗 Detected other URI type: $photo")
+                    photo
+                }
+                
+                android.util.Log.d("AddTaskViewModel", "📋 Photo final: $processedPhoto")
+                
                 val task = Task(
                     id = null,
                     title = title,
                     description = description,
                     date = currentDate,
                     state = "Pendente",
-                    photo = "photo_url",
+                    photo = processedPhoto ?: "photo_url",
                     homeId = homeId,
                     userId = userId,
                     taskCategoryId = 1
@@ -84,33 +111,38 @@ class AddTaskViewModel : ViewModel() {
                         
                         // Se foi selecionado um residente, criar a ligação de task participant
                         if (selectedResidentId != null && createdTask.id != null) {
+                            android.util.Log.d("AddTaskViewModel", "Criando TaskParticipantDto: taskId=${createdTask.id}, userId=$selectedResidentId")
                             try {
                                 val taskParticipant = TaskParticipantDto(
                                     taskId = createdTask.id,
                                     userId = selectedResidentId
                                 )
+                                android.util.Log.d("AddTaskViewModel", "Enviando TaskParticipantDto: $taskParticipant")
                                 val participantResponse = api.createTaskParticipant(taskParticipant)
                                 if (participantResponse.isSuccessful) {
-                                    android.util.Log.d("AddTaskViewModel", "Task participant criado com sucesso!")
+                                    android.util.Log.d("AddTaskViewModel", "✅ Task participant criado com sucesso!")
                                 } else {
-                                    android.util.Log.e("AddTaskViewModel", "Erro ao criar task participant: ${participantResponse.message()}")
+                                    val errorBody = participantResponse.errorBody()?.string()
+                                    android.util.Log.e("AddTaskViewModel", "❌ Erro ao criar task participant: Status=${participantResponse.code()}, Message=${participantResponse.message()}, ErrorBody=$errorBody")
                                 }
                             } catch (e: Exception) {
-                                android.util.Log.e("AddTaskViewModel", "Exceção ao criar task participant: ${e.message}")
+                                android.util.Log.e("AddTaskViewModel", "💥 Exceção ao criar task participant: ${e.message}", e)
                             }
+                        } else {
+                            android.util.Log.d("AddTaskViewModel", "ℹ️ Nenhum residente selecionado ou task ID nulo, pulando criação de TaskParticipantDto")
                         }
                         
                         success.value = true
                         isLoading.value = false
                     },
                     onFailure = { error ->
-                        android.util.Log.e("AddTaskViewModel", "Erro ao criar task: ${error.message}")
+                        android.util.Log.e("AddTaskViewModel", "❌ Erro ao criar task: ${error.message}")
                         errorMessage.value = error.message
                         isLoading.value = false
                     }
                 )
             } catch (e: Exception) {
-                android.util.Log.e("AddTaskViewModel", "Exceção ao criar task: ${e.message}")
+                android.util.Log.e("AddTaskViewModel", "💥 Exceção ao criar task: ${e.message}", e)
                 errorMessage.value = e.message
                 isLoading.value = false
             }

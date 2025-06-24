@@ -182,7 +182,7 @@ fun HomeMenuScreen(
                             TaskListItem(
                                 taskName = task.title,
                                 taskDate = task.date,
-                                imageRes = R.drawable.logotipo,
+                                photoUri = R.drawable.logotipo.toString(),
                                 isCompleted = false,
                                 onStatusChange = { isCompleted ->
                                     task.id?.let { id ->

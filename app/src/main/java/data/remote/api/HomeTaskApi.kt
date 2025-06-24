@@ -27,7 +27,7 @@ interface HomeTaskApi {
 
     // Task endpoints
     @POST("tasks/tasks")
-    suspend fun createTask(@Body task: TaskDto): Response<TaskDto>
+    suspend fun createTask(@Body task: TaskDto): Response<ApiResponse<TaskDto>>
 
     @GET("tasks/tasks")
     suspend fun getAllTasks(): Response<List<TaskDto>>
@@ -38,7 +38,7 @@ interface HomeTaskApi {
     @GET("tasks/tasks/home/{homeId}")
     suspend fun getTasksByHome(@Path("homeId") homeId: Int): Response<ApiResponse<List<TaskDto>>>
 
-    @GET("tasks/user/{userId}")
+    @GET("tasks/tasks/user/{userId}")
     suspend fun getTasksByUser(@Path("userId") userId: Int): Response<ApiResponse<List<TaskDto>>>
 
     @PUT("tasks/tasks/{id}")

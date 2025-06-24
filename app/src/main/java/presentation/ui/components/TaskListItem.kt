@@ -18,12 +18,13 @@ import androidx.compose.ui.unit.sp
 import pt.ipca.hometask.R
 import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.ui.graphics.Color
+import coil.compose.AsyncImage
 
 @Composable
 fun TaskListItem(
     taskName: String,
     taskDate: String,
-    imageRes: Int,
+    photoUri: String?,
     isCompleted: Boolean,
     onStatusChange: (Boolean) -> Unit
 ) {
@@ -40,14 +41,27 @@ fun TaskListItem(
                 .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Image(
-                painter = painterResource(id = imageRes),
-                contentDescription = "Task Image",
-                modifier = Modifier
-                    .size(46.dp)
-                    .clip(RoundedCornerShape(8.dp)),
-                contentScale = ContentScale.Crop
-            )
+            // Image - use AsyncImage if photoUri is provided, otherwise use default image
+            if (photoUri != null && photoUri != "photo_url") {
+                AsyncImage(
+                    model = photoUri,
+                    contentDescription = "Task Image",
+                    modifier = Modifier
+                        .size(46.dp)
+                        .clip(RoundedCornerShape(8.dp)),
+                    contentScale = ContentScale.Crop,
+                    error = painterResource(id = R.drawable.ic_task_default)
+                )
+            } else {
+                Image(
+                    painter = painterResource(id = R.drawable.ic_task_default),
+                    contentDescription = "Task Image",
+                    modifier = Modifier
+                        .size(46.dp)
+                        .clip(RoundedCornerShape(8.dp)),
+                    contentScale = ContentScale.Crop
+                )
+            }
 
             Spacer(modifier = Modifier.width(12.dp))
 
@@ -77,4 +91,4 @@ fun TaskListItem(
             )
         }
     }
-} 
+}

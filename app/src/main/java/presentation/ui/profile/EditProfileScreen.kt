@@ -32,7 +32,6 @@ fun EditProfilePage(
     val uiState = viewModel.uiState.value
     var name by remember { mutableStateOf(uiState.currentUser?.name ?: "") }
     var email by remember { mutableStateOf(uiState.currentUser?.email ?: "") }
-    var password by remember { mutableStateOf("") }
 
     // Observar mudanças no estado de logout
     LaunchedEffect(uiState.isLogoutSuccessful) {
@@ -96,32 +95,7 @@ fun EditProfilePage(
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Campo Password
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.Start
-            ) {
-                CustomTextBox(
-                    value = password,
-                    onValueChange = { password = it },
-                    placeholder = "Enter your password",
-                    isPassword = true
-                )
-            }
-
             Spacer(modifier = Modifier.height(200.dp))
-
-            // Botão Save Changes
-            CustomButton(
-                text = "Save Changes",
-                onClick = {
-                    viewModel.updateProfile(name, email, password)
-                }
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
 
             // Botão Logout
             CustomButton(

@@ -66,6 +66,9 @@ dependencies {
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
     
+    // Coil for image loading
+    implementation("io.coil-kt:coil-compose:2.5.0")
+    
     // Google Maps e Location
     implementation("com.google.maps.android:maps-compose:4.3.3")
     implementation("com.google.android.gms:play-services-location:21.2.0")

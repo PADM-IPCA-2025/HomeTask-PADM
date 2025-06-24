@@ -6,6 +6,7 @@ data class ShoppingList(
     val startDate: String? = null,
     val endDate: String? = null,
     val homeId: Int,
+    val userId: Int? = null,
     val shoppingItems: List<ShoppingItem>? = null,
     val total: Double? = null
 )

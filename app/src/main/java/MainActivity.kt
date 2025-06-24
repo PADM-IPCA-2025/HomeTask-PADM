@@ -35,6 +35,7 @@ import presentation.ui.task.TasksMenuScreen
 import presentation.ui.task.AddEditTaskScreen
 import presentation.ui.home.InviteResidentScreen
 import pt.ipca.hometask.presentation.ui.shopping.ClosestSuperMarketScreen
+import pt.ipca.hometask.utils.ImageUtils
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -42,6 +43,9 @@ class MainActivity : ComponentActivity() {
 
         // Log para debug
         Log.d("MainActivity", "Aplicação iniciada")
+
+        // Limpar imagens antigas ao iniciar a app
+        ImageUtils.cleanupOldImages(this)
 
         enableEdgeToEdge()
         setContent {
@@ -496,13 +500,14 @@ fun NavigationRouter() {
                 isEditMode = false,
                 residents = addTaskViewModel.residents.value,
                 onBackClick = { navController.popBackStack() },
-                onSaveClick = { title, description, selectedResidentId, status, date ->
+                onSaveClick = { title, description, selectedResidentId, status, date, photo ->
                     addTaskViewModel.createTask(
                         title = title,
                         description = description,
                         selectedResidentId = selectedResidentId,
                         status = status,
                         date = date,
+                        photo = photo,
                         homeId = homeId,
                         userId = userId!!
                     )
@@ -516,13 +521,11 @@ fun NavigationRouter() {
         composable("inviteResident/{homeId}") { backStackEntry ->
             val homeId = backStackEntry.arguments?.getString("homeId")?.toIntOrNull() ?: 0
             Log.d("InviteResident", "Entrou na tela de inviteResident com homeId=$homeId")
-            val inviteResidentViewModel: pt.ipca.hometask.presentation.viewModel.home.InviteResidentViewModel = viewModel()
-            LaunchedEffect(Unit) { inviteResidentViewModel.loadAllUsers() }
             InviteResidentScreen(
                 onBackClick = { navController.popBackStack() },
-                onSendClick = { email -> inviteResidentViewModel.inviteResidentByEmail(email, homeId) },
                 onHomeClick = { navController.navigate("homeMenu") },
-                onProfileClick = { navController.navigate("editProfile") }
+                onProfileClick = { navController.navigate("editProfile") },
+                homeId = homeId
             )
         }
 

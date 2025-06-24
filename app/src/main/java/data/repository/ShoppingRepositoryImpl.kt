@@ -19,6 +19,7 @@ class ShoppingRepositoryImpl(private val context: Context) : ShoppingRepository 
             startDate = startDate,
             endDate = endDate,
             homeId = homeId,
+            userId = userId,
             shoppingItems = shoppingItems?.map { it.toDomain() },
             total = total
         )
@@ -31,6 +32,7 @@ class ShoppingRepositoryImpl(private val context: Context) : ShoppingRepository 
             startDate = startDate,
             endDate = endDate,
             homeId = homeId,
+            userId = userId,
             shoppingItems = shoppingItems?.map { it.toDto() },
             total = total
         )

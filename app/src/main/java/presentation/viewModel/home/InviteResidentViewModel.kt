@@ -80,5 +80,13 @@ class InviteResidentViewModel : ViewModel() {
             isLoading.value = false
         }
     }
+
+    fun clearInviteSuccess() {
+        inviteSuccess.value = false
+    }
+
+    fun clearError() {
+        errorMessage.value = null
+    }
 }
 

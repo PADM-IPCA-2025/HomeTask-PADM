@@ -1,6 +1,7 @@
 package pt.ipca.hometask.presentation.viewModel.auth
 
 import android.app.Application
+import android.util.Log
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -31,8 +32,11 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun login(email: String, password: String) {
+        Log.d("LoginViewModel", "🔐 Iniciando processo de login para: $email")
+        
         // Validação básica
         if (email.isBlank() || password.isBlank()) {
+            Log.w("LoginViewModel", "⚠️ Email ou password vazios")
             uiState.value = uiState.value.copy(
                 error = "Email and password are required"
             )
@@ -45,8 +49,10 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
         )
 
         viewModelScope.launch {
+            Log.d("LoginViewModel", "🚀 Chamando repository.login()")
             userRepository.login(email, password)
                 .onSuccess { user ->
+                    Log.d("LoginViewModel", "✅ Login bem-sucedido: ${user.name}")
                     // 🔥 SALVAR NO SHARED PREFERENCES
                     authPreferences.saveUserData(user)
 
@@ -57,9 +63,12 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                     )
                 }
                 .onFailure { exception ->
+                    Log.e("LoginViewModel", "❌ Login falhou", exception)
+                    val errorMessage = exception.message ?: "Login failed"
+                    Log.e("LoginViewModel", "💥 Error message: $errorMessage")
                     uiState.value = uiState.value.copy(
                         isLoading = false,
-                        error = exception.message ?: "Login failed"
+                        error = errorMessage
                     )
                 }
         }

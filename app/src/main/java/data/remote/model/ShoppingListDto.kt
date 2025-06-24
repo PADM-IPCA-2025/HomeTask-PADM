@@ -8,6 +8,7 @@ data class ShoppingListDto(
     @SerializedName("startDate") val startDate: String? = null,
     @SerializedName("endDate") val endDate: String? = null,
     @SerializedName("homeId") val homeId: Int,
+    @SerializedName("userId") val userId: Int? = null,
     @SerializedName("shoppingItems") val shoppingItems: List<ShoppingItemDto>? = null,
     @SerializedName("total") val total: Double? = null
 )

@@ -56,13 +56,36 @@ class TaskRepositoryImpl : TaskRepository {
 
     override suspend fun createTask(task: Task): Result<Task> {
         return try {
-            val response = api.createTask(task.toDto())
+            Log.d("TaskRepositoryImpl", "🔧 Criando task: ${task.title}")
+            val taskDto = task.toDto()
+            Log.d("TaskRepositoryImpl", "📤 Enviando TaskDto: $taskDto")
+            
+            val response = api.createTask(taskDto)
+            Log.d("TaskRepositoryImpl", "📥 Response recebida: isSuccessful=${response.isSuccessful}, code=${response.code()}")
+            
             if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!.toDomain())
+                val apiResponse = response.body()!!
+                Log.d("TaskRepositoryImpl", "📋 ApiResponse: success=${apiResponse.success}, message=${apiResponse.message}")
+                
+                if (apiResponse.success) {
+                    val createdTaskDto = apiResponse.data
+                    Log.d("TaskRepositoryImpl", "✅ Task criada com sucesso! ID: ${createdTaskDto.id}")
+                    Log.d("TaskRepositoryImpl", "📋 TaskDto completo: $createdTaskDto")
+                    
+                    val domainTask = createdTaskDto.toDomain()
+                    Log.d("TaskRepositoryImpl", "🔄 Convertido para domínio: $domainTask")
+                    Result.success(domainTask)
+                } else {
+                    Log.e("TaskRepositoryImpl", "❌ API retornou success=false: ${apiResponse.message}")
+                    Result.failure(Exception(apiResponse.message))
+                }
             } else {
-                Result.failure(Exception("Create task failed: ${response.message()}"))
+                val errorBody = response.errorBody()?.string()
+                Log.e("TaskRepositoryImpl", "❌ Erro ao criar task: Status=${response.code()}, Message=${response.message()}, ErrorBody=$errorBody")
+                Result.failure(Exception("Create task failed: ${response.message()} - $errorBody"))
             }
         } catch (e: Exception) {
+            Log.e("TaskRepositoryImpl", "💥 Exceção ao criar task", e)
             Result.failure(e)
         }
     }
@@ -114,35 +137,39 @@ class TaskRepositoryImpl : TaskRepository {
 
     override suspend fun getTasksByUser(userId: Int): Result<List<Task>> {
         return try {
-            Log.d("TaskRepositoryImpl", "Getting tasks for user $userId")
+            Log.d("TaskRepositoryImpl", "🔍 Getting tasks for user $userId via tasks/user endpoint")
+            
+            // Usar o endpoint correto: tasks/tasks/user/{userId}
             val response = api.getTasksByUser(userId)
-            Log.d("TaskRepositoryImpl", "API response: ${response.isSuccessful}, body: ${response.body()}")
+            Log.d("TaskRepositoryImpl", "📥 API response: ${response.isSuccessful}, code: ${response.code()}, body: ${response.body()}")
 
-            if (response.isSuccessful) {
-                val apiResponse = response.body()
-                if (apiResponse?.success == true) {
+            if (response.isSuccessful && response.body() != null) {
+                val apiResponse = response.body()!!
+                if (apiResponse.success) {
                     val tasks = apiResponse.data
-                    Log.d("TaskRepositoryImpl", "Found ${tasks.size} tasks")
+                    Log.d("TaskRepositoryImpl", "✅ Found ${tasks.size} tasks for user $userId")
 
                     // Converter todas as tasks para o modelo de domínio
                     val domainTasks = tasks.map { taskDto ->
                         val domainTask = taskDto.toDomain()
-                        Log.d("TaskRepositoryImpl", "Returning task: ${domainTask.title}")
+                        Log.d("TaskRepositoryImpl", "🔄 Returning task: ${domainTask.title}")
                         domainTask
                     }
 
                     Result.success(domainTasks)
                 } else {
-                    Log.e("TaskRepositoryImpl", "API returned error: ${apiResponse?.message}")
-                    Result.failure(Exception(apiResponse?.message ?: "Unknown error"))
+                    Log.e("TaskRepositoryImpl", "❌ API returned error: ${apiResponse.message}")
+                    Result.success(emptyList())
                 }
             } else {
-                Log.e("TaskRepositoryImpl", "API call failed: ${response.code()}")
-                Result.failure(Exception("Failed to get tasks: ${response.code()}"))
+                Log.e("TaskRepositoryImpl", "❌ API call failed: ${response.code()}")
+                // Retornar lista vazia em vez de erro para não quebrar a UI
+                Result.success(emptyList())
             }
         } catch (e: Exception) {
-            Log.e("TaskRepositoryImpl", "Error getting tasks", e)
-            Result.failure(e)
+            Log.e("TaskRepositoryImpl", "💥 Error getting tasks", e)
+            // Retornar lista vazia em vez de erro para não quebrar a UI
+            Result.success(emptyList())
         }
     }
 

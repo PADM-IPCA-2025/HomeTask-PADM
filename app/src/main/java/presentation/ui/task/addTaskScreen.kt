@@ -4,6 +4,8 @@ import modules.TopBar
 import modules.CustomTextBox
 import modules.CustomButton
 import modules.BottomMenuBar
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -22,11 +24,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
+import coil.compose.AsyncImage
 import pt.ipca.hometask.R
 import android.util.Log
 
@@ -38,10 +43,10 @@ fun AddEditTaskScreen(
     initialGroup: String = "",
     initialStatus: String = "",
     initialDate: String = "",
-    initialImageRes: Int? = null,
+    initialPhoto: String? = null,
     residents: List<pt.ipca.hometask.domain.model.User> = emptyList(),
     onBackClick: () -> Unit = {},
-    onSaveClick: (String, String, Int?, String, String) -> Unit = { _, _, _, _, _ -> },
+    onSaveClick: (String, String, Int?, String, String, String?) -> Unit = { _, _, _, _, _, _ -> },
     onRemoveClick: () -> Unit = {},
     onImageClick: () -> Unit = {},
     onHomeClick: () -> Unit = {},
@@ -53,13 +58,23 @@ fun AddEditTaskScreen(
     var selectedResidentName by remember { mutableStateOf("") }
     var selectedStatus by remember { mutableStateOf(initialStatus) }
     var selectedDate by remember { mutableStateOf(initialDate) }
-    var selectedImageRes by remember { mutableStateOf(initialImageRes) }
+    var selectedPhoto by remember { mutableStateOf(initialPhoto) }
 
     var showResidentDialog by remember { mutableStateOf(false) }
     var showStatusDialog by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
 
     val statuses = listOf("To Do", "In Progress", "Completed")
+
+    // Launcher para selecionar imagem da galeria
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let {
+            selectedPhoto = it.toString()
+            Log.d("AddEditTaskScreen", "Foto selecionada: $selectedPhoto")
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -84,15 +99,19 @@ fun AddEditTaskScreen(
                     .align(Alignment.CenterHorizontally)
                     .clip(CircleShape)
                     .background(colorResource(id = R.color.listitem_blue))
-                    .clickable { onImageClick() },
+                    .clickable { 
+                        imagePickerLauncher.launch("image/*")
+                        onImageClick()
+                    },
                 contentAlignment = Alignment.Center
             ) {
-                if (selectedImageRes != null) {
-                    Image(
-                        painter = painterResource(id = selectedImageRes!!),
+                if (selectedPhoto != null) {
+                    AsyncImage(
+                        model = selectedPhoto,
                         contentDescription = "Task Image",
                         modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
+                        contentScale = ContentScale.Crop,
+                        error = painterResource(id = R.drawable.ic_task_default)
                     )
                 } else {
                     Icon(
@@ -191,8 +210,14 @@ fun AddEditTaskScreen(
             CustomButton(
                 text = if (isEditMode) "Save Changes" else "Create Task",
                 onClick = {
-                    Log.d("AddEditTaskScreen", "Criando task: name=$taskName, desc=$description, selectedResidentId=$selectedResidentId, status=$selectedStatus, date=$selectedDate")
-                    onSaveClick(taskName, description, selectedResidentId, selectedStatus, selectedDate)
+                    Log.d("AddEditTaskScreen", "🔧 Criando task com parâmetros:")
+                    Log.d("AddEditTaskScreen", "  - name: $taskName")
+                    Log.d("AddEditTaskScreen", "  - description: $description")
+                    Log.d("AddEditTaskScreen", "  - selectedResidentId: $selectedResidentId")
+                    Log.d("AddEditTaskScreen", "  - selectedStatus: $selectedStatus")
+                    Log.d("AddEditTaskScreen", "  - selectedDate: $selectedDate")
+                    Log.d("AddEditTaskScreen", "  - selectedPhoto: $selectedPhoto")
+                    onSaveClick(taskName, description, selectedResidentId, selectedStatus, selectedDate, selectedPhoto)
                 }
             )
 
@@ -226,6 +251,7 @@ fun AddEditTaskScreen(
                 onOptionSelected = { residentName ->
                     selectedResidentName = residentName
                     selectedResidentId = residents.find { it.name == residentName }?.id
+                    Log.d("AddEditTaskScreen", "Residente selecionado: name=$residentName, id=$selectedResidentId")
                 },
                 onDismiss = { showResidentDialog = false }
             )
@@ -447,7 +473,7 @@ fun AddEditTaskScreenPreview() {
         AddEditTaskScreen(
             isEditMode = false,
             onBackClick = { /* Voltar */ },
-            onSaveClick = { name, desc, group, status, date ->
+            onSaveClick = { name, desc, group, status, date, photo ->
                 /* Criar tarefa */
             },
             onImageClick = { /* Selecionar imagem */ },

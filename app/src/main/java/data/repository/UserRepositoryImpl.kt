@@ -48,18 +48,34 @@ class UserRepositoryImpl : UserRepository {
 
     override suspend fun login(email: String, password: String): Result<User> {
         return try {
-            // Obter o token FCM
-            val fcmToken = FirebaseMessaging.getInstance().token.await()
-            Log.d("UserRepositoryImpl", "FCM Token obtido: $fcmToken")
+            Log.d("UserRepositoryImpl", "🔐 Iniciando login para email: $email")
+            
+            // Obter o token FCM com tratamento de erro
+            val fcmToken = try {
+                FirebaseMessaging.getInstance().token.await()
+            } catch (e: Exception) {
+                Log.w("UserRepositoryImpl", "⚠️ Erro ao obter FCM token, continuando sem token", e)
+                null
+            }
+            Log.d("UserRepositoryImpl", "📱 FCM Token obtido: $fcmToken")
+
+            // Criar request
+            val loginRequest = LoginRequest(email, password, fcmToken)
+            Log.d("UserRepositoryImpl", "📤 Enviando request: $loginRequest")
 
             // Fazer login com email, password e token FCM
-            val response = api.login(LoginRequest(email, password, fcmToken))
+            val response = api.login(loginRequest)
+            Log.d("UserRepositoryImpl", "📥 Response recebida - Status: ${response.code()}, Message: ${response.message()}")
+            
             if (response.isSuccessful && response.body() != null) {
                 val apiResponse = response.body()!!
+                Log.d("UserRepositoryImpl", "✅ Response body: $apiResponse")
 
                 if (apiResponse.success) {
                     val dto = apiResponse.data
-                    Result.success(User(
+                    Log.d("UserRepositoryImpl", "👤 User DTO: $dto")
+                    
+                    val user = User(
                         id = dto.id,
                         name = dto.name,
                         email = dto.email,
@@ -67,15 +83,20 @@ class UserRepositoryImpl : UserRepository {
                         profilePicture = dto.profilePicture,
                         token = dto.token,
                         mobileToken = fcmToken
-                    ))
+                    )
+                    Log.d("UserRepositoryImpl", "🎉 Login bem-sucedido para usuário: ${user.name}")
+                    Result.success(user)
                 } else {
+                    Log.e("UserRepositoryImpl", "❌ API retornou success=false: ${apiResponse.message}")
                     Result.failure(Exception(apiResponse.message))
                 }
             } else {
-                Result.failure(Exception("Login failed: ${response.message()}"))
+                val errorBody = response.errorBody()?.string()
+                Log.e("UserRepositoryImpl", "❌ Response não bem-sucedida - Status: ${response.code()}, Error Body: $errorBody")
+                Result.failure(Exception("Login failed: ${response.message()} - $errorBody"))
             }
         } catch (e: Exception) {
-            Log.e("UserRepositoryImpl", "Erro ao fazer login", e)
+            Log.e("UserRepositoryImpl", "💥 Erro ao fazer login", e)
             Result.failure(e)
         }
     }

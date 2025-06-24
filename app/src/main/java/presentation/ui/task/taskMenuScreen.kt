@@ -63,8 +63,14 @@ fun TasksMenuScreen(
 
     Log.d("TasksMenuScreen", "progressTasks: " + progressTasks.joinToString { it.title + " (" + it.state + ")" })
     Log.d("TasksMenuScreen", "historyTasks: " + historyTasks.joinToString { it.title + " (" + it.state + ")" })
-
-
+    
+    // Log das fotos das tarefas
+    progressTasks.forEach { task ->
+        Log.d("TasksMenuScreen", "Progress task '${task.title}' photo: ${task.photo}")
+    }
+    historyTasks.forEach { task ->
+        Log.d("TasksMenuScreen", "History task '${task.title}' photo: ${task.photo}")
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -170,7 +176,7 @@ fun TasksMenuScreen(
                                     TaskListItem(
                                         taskName = task.title,
                                         taskDate = task.date,
-                                        imageRes = R.drawable.ic_launcher_background,
+                                        photoUri = task.photo,
                                         isCompleted = false,
                                         onStatusChange = {
                                             val newState = if (task.state == "Pendente") "Concluida" else "Pendente"
@@ -188,7 +194,7 @@ fun TasksMenuScreen(
                                     TaskListItem(
                                         taskName = task.title,
                                         taskDate = task.date,
-                                        imageRes = R.drawable.ic_launcher_background,
+                                        photoUri = task.photo,
                                         isCompleted = true,
                                         onStatusChange = {
                                             val newState = if (task.state == "Concluida") "Pendente" else "Concluida"

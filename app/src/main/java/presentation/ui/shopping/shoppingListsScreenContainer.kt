@@ -82,6 +82,9 @@ fun ShoppingListsScreenContainer(
             onProfileClick = onProfileClick,
             onClosestSupermarketClick = onClosestSupermarketClick,
             onAddClick = { showCreateListDialog = true },
+            onSlideAction = { shoppingList, moveToHistory -> 
+                viewModel.handleSlideAction(shoppingList, moveToHistory)
+            },
             inProgressLists = uiState.inProgressLists.map { it.shoppingList },
             historyLists = uiState.historyLists.map { it.shoppingList },
             selectedTab = uiState.selectedTab,

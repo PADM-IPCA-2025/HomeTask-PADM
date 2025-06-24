@@ -39,8 +39,9 @@ fun AddEditTaskScreen(
     initialStatus: String = "",
     initialDate: String = "",
     initialImageRes: Int? = null,
+    residents: List<pt.ipca.hometask.domain.model.User> = emptyList(),
     onBackClick: () -> Unit = {},
-    onSaveClick: (String, String, String, String, String) -> Unit = { _, _, _, _, _ -> },
+    onSaveClick: (String, String, Int?, String, String) -> Unit = { _, _, _, _, _ -> },
     onRemoveClick: () -> Unit = {},
     onImageClick: () -> Unit = {},
     onHomeClick: () -> Unit = {},
@@ -48,16 +49,16 @@ fun AddEditTaskScreen(
 ) {
     var taskName by remember { mutableStateOf(initialTaskName) }
     var description by remember { mutableStateOf(initialDescription) }
-    var selectedGroup by remember { mutableStateOf(initialGroup) }
+    var selectedResidentId by remember { mutableStateOf<Int?>(null) }
+    var selectedResidentName by remember { mutableStateOf("") }
     var selectedStatus by remember { mutableStateOf(initialStatus) }
     var selectedDate by remember { mutableStateOf(initialDate) }
     var selectedImageRes by remember { mutableStateOf(initialImageRes) }
 
-    var showGroupDialog by remember { mutableStateOf(false) }
+    var showResidentDialog by remember { mutableStateOf(false) }
     var showStatusDialog by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
 
-    val groups = listOf("Grupo6 Residente")
     val statuses = listOf("To Do", "In Progress", "Completed")
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -141,7 +142,7 @@ fun AddEditTaskScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Group Dropdown
+            // Resident Dropdown
             Text(
                 text = "Task Responsible",
                 fontSize = 14.sp,
@@ -149,9 +150,9 @@ fun AddEditTaskScreen(
                 modifier = Modifier.padding(start = 24.dp, bottom = 8.dp)
             )
             DropdownField(
-                value = selectedGroup,
-                placeholder = "Select group",
-                onClick = { showGroupDialog = true },
+                value = selectedResidentName,
+                placeholder = "Select resident",
+                onClick = { showResidentDialog = true },
                 modifier = Modifier
                     .fillMaxWidth(0.9f)
                     .padding(start = 24.dp)
@@ -190,8 +191,8 @@ fun AddEditTaskScreen(
             CustomButton(
                 text = if (isEditMode) "Save Changes" else "Create Task",
                 onClick = {
-                    Log.d("AddEditTaskScreen", "Criando task: name=$taskName, desc=$description, group=$selectedGroup, status=$selectedStatus, date=$selectedDate")
-                    onSaveClick(taskName, description, selectedGroup, selectedStatus, selectedDate)
+                    Log.d("AddEditTaskScreen", "Criando task: name=$taskName, desc=$description, selectedResidentId=$selectedResidentId, status=$selectedStatus, date=$selectedDate")
+                    onSaveClick(taskName, description, selectedResidentId, selectedStatus, selectedDate)
                 }
             )
 
@@ -216,14 +217,17 @@ fun AddEditTaskScreen(
             )
         }
 
-        // Group Selection Dialog
-        if (showGroupDialog) {
+        // Resident Selection Dialog
+        if (showResidentDialog) {
             SelectionDialog(
                 title = "Select Responsible",
-                options = groups,
-                selectedOption = selectedGroup,
-                onOptionSelected = { selectedGroup = it },
-                onDismiss = { showGroupDialog = false }
+                options = residents.map { it.name },
+                selectedOption = selectedResidentName,
+                onOptionSelected = { residentName ->
+                    selectedResidentName = residentName
+                    selectedResidentId = residents.find { it.name == residentName }?.id
+                },
+                onDismiss = { showResidentDialog = false }
             )
         }
 

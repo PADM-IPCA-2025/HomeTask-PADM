@@ -411,6 +411,98 @@ class ShoppingListsViewModel(
         }
     }
 
+    fun handleSlideAction(shoppingList: ShoppingList, moveToHistory: Boolean) {
+        android.util.Log.d("ShoppingListsViewModel", "=== START handleSlideAction ===")
+        android.util.Log.d("ShoppingListsViewModel", "List ID: ${shoppingList.id}")
+        android.util.Log.d("ShoppingListsViewModel", "Move to history: $moveToHistory")
+        
+        if (!authRepository.isLoggedIn()) {
+            android.util.Log.e("ShoppingListsViewModel", "User not logged in")
+            _uiState.value = _uiState.value.copy(
+                errorMessage = "Usuário não está logado"
+            )
+            return
+        }
+
+        val listId = shoppingList.id
+        if (listId == null) {
+            android.util.Log.e("ShoppingListsViewModel", "List ID is null")
+            _uiState.value = _uiState.value.copy(
+                errorMessage = "ID da lista não encontrado"
+            )
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+
+            try {
+                val currentList = _uiState.value.allShoppingLists.find { it.id == listId }
+                if (currentList == null) {
+                    android.util.Log.e("ShoppingListsViewModel", "List not found in state")
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        errorMessage = "Lista não encontrada"
+                    )
+                    return@launch
+                }
+
+                // Verificar se a lista pertence ao usuário atual
+                val currentUserId = authRepository.getUserId()
+                if (currentUserId != currentList.homeId && !authRepository.isAdmin()) {
+                    android.util.Log.e("ShoppingListsViewModel", "User not authorized")
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        errorMessage = "Você não tem permissão para modificar esta lista"
+                    )
+                    return@launch
+                }
+
+                // Preparar a lista atualizada
+                val updatedList = if (shoppingList.endDate.isNullOrEmpty()) {
+                    // Lista está em progresso - mover para histórico
+                    val currentDate = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+                    currentList.copy(endDate = currentDate)
+                } else {
+                    // Lista está no histórico - mover para progresso (enviar data mais baixa possível)
+                    currentList.copy(endDate = "0001-01-01")
+                }
+
+                android.util.Log.d("ShoppingListsViewModel", "Updating list: $updatedList")
+
+                val result = repository.updateShoppingList(listId, updatedList)
+                result.onSuccess { updated ->
+                    android.util.Log.d("ShoppingListsViewModel", "List updated successfully: $updated")
+                    
+                    // Atualizar a lista local
+                    val updatedAllLists = _uiState.value.allShoppingLists.map {
+                        if (it.id == listId) updated else it
+                    }
+                    _uiState.value = _uiState.value.copy(
+                        allShoppingLists = updatedAllLists,
+                        isLoading = false
+                    )
+                    
+                    // Recarregar totais para atualizar as separações
+                    loadListTotals(updatedAllLists)
+                }.onFailure { exception ->
+                    android.util.Log.e("ShoppingListsViewModel", "Failed to update list", exception)
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        errorMessage = "Erro ao atualizar lista: ${exception.message}"
+                    )
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("ShoppingListsViewModel", "Unexpected error updating list", e)
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = "Erro inesperado: ${e.message}"
+                )
+            }
+        }
+        android.util.Log.d("ShoppingListsViewModel", "=== END handleSlideAction ===")
+    }
+
     fun markListAsCompleted(listId: Int) {
         if (!authRepository.isLoggedIn()) {
             _uiState.value = _uiState.value.copy(

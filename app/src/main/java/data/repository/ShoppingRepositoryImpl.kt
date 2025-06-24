@@ -37,12 +37,23 @@ class ShoppingRepositoryImpl(private val context: Context) : ShoppingRepository 
     }
 
     private fun ShoppingItemDto.toDomain(): ShoppingItem {
+        android.util.Log.d("ShoppingRepositoryImpl", "Converting DTO to domain: $this")
+        android.util.Log.d("ShoppingRepositoryImpl", "DTO description: '$description'")
+        android.util.Log.d("ShoppingRepositoryImpl", "DTO quantity: $quantity")
+        android.util.Log.d("ShoppingRepositoryImpl", "DTO state: '$state'")
+        android.util.Log.d("ShoppingRepositoryImpl", "DTO price: '$price' (type: ${price?.javaClass?.simpleName})")
+        android.util.Log.d("ShoppingRepositoryImpl", "DTO shoppingListId: $shoppingListId")
+        android.util.Log.d("ShoppingRepositoryImpl", "DTO itemCategoryId: $itemCategoryId")
+        
+        val convertedPrice = price?.toFloatOrNull() ?: 0f
+        android.util.Log.d("ShoppingRepositoryImpl", "Converted price: $convertedPrice")
+        
         return ShoppingItem(
             id = id,
             description = description,
             quantity = quantity.toFloat(),
             state = state,
-            price = price.toFloatOrNull() ?: 0f,
+            price = convertedPrice,
             shoppingListId = shoppingListId,
             itemCategoryId = itemCategoryId
         )
@@ -207,7 +218,12 @@ class ShoppingRepositoryImpl(private val context: Context) : ShoppingRepository 
 
     override suspend fun updateShoppingList(id: Int, shoppingList: ShoppingList): Result<ShoppingList> {
         return try {
-            val response = api.updateShoppingList(id, shoppingList.toDto())
+            val shoppingListDto = shoppingList.toDto().copy(
+                id = null, // Remove ID from body for update
+                shoppingItems = null, // Remove shopping items from update
+                total = null // Remove total from update
+            )
+            val response = api.updateShoppingList(id, shoppingListDto)
             if (response.isSuccessful && response.body() != null) {
                 val apiResponse = response.body()!!
                 if (apiResponse.success) {
@@ -243,19 +259,97 @@ class ShoppingRepositoryImpl(private val context: Context) : ShoppingRepository 
 
     // Shopping Items
     override suspend fun createShoppingItem(item: ShoppingItem): Result<ShoppingItem> {
+        android.util.Log.d("ShoppingRepositoryImpl", "=== START createShoppingItem ===")
+        android.util.Log.d("ShoppingRepositoryImpl", "Creating shopping item: $item")
+        android.util.Log.d("ShoppingRepositoryImpl", "Item description: ${item.description}")
+        android.util.Log.d("ShoppingRepositoryImpl", "Item quantity: ${item.quantity}")
+        android.util.Log.d("ShoppingRepositoryImpl", "Item state: ${item.state}")
+        android.util.Log.d("ShoppingRepositoryImpl", "Item price: ${item.price}")
+        android.util.Log.d("ShoppingRepositoryImpl", "Item shoppingListId: ${item.shoppingListId}")
+        android.util.Log.d("ShoppingRepositoryImpl", "Item itemCategoryId: ${item.itemCategoryId}")
+        
+        // Validações adicionais
+        if (item.description.isNullOrBlank()) {
+            android.util.Log.e("ShoppingRepositoryImpl", "Description is blank or null")
+            return Result.failure(Exception("Description cannot be blank"))
+        }
+        
+        if (item.quantity <= 0) {
+            android.util.Log.e("ShoppingRepositoryImpl", "Invalid quantity: ${item.quantity}")
+            return Result.failure(Exception("Quantity must be greater than 0"))
+        }
+        
+        if (item.price < 0) {
+            android.util.Log.e("ShoppingRepositoryImpl", "Invalid price: ${item.price}")
+            return Result.failure(Exception("Price cannot be negative"))
+        }
+        
+        if (item.shoppingListId <= 0) {
+            android.util.Log.e("ShoppingRepositoryImpl", "Invalid shoppingListId: ${item.shoppingListId}")
+            return Result.failure(Exception("ShoppingListId must be greater than 0"))
+        }
+        
+        if (item.itemCategoryId <= 0) {
+            android.util.Log.e("ShoppingRepositoryImpl", "Invalid itemCategoryId: ${item.itemCategoryId}")
+            return Result.failure(Exception("ItemCategoryId must be greater than 0"))
+        }
+        
         return try {
-            val response = api.createShoppingItem(item.toDto())
+            val itemDto = item.toDto()
+            android.util.Log.d("ShoppingRepositoryImpl", "Converted to DTO: $itemDto")
+            android.util.Log.d("ShoppingRepositoryImpl", "DTO description: ${itemDto.description}")
+            android.util.Log.d("ShoppingRepositoryImpl", "DTO quantity: ${itemDto.quantity}")
+            android.util.Log.d("ShoppingRepositoryImpl", "DTO state: ${itemDto.state}")
+            android.util.Log.d("ShoppingRepositoryImpl", "DTO price: ${itemDto.price}")
+            android.util.Log.d("ShoppingRepositoryImpl", "DTO shoppingListId: ${itemDto.shoppingListId}")
+            android.util.Log.d("ShoppingRepositoryImpl", "DTO itemCategoryId: ${itemDto.itemCategoryId}")
+            
+            val response = api.createShoppingItem(itemDto)
+            android.util.Log.d("ShoppingRepositoryImpl", "API response received")
+            android.util.Log.d("ShoppingRepositoryImpl", "Response successful: ${response.isSuccessful}")
+            android.util.Log.d("ShoppingRepositoryImpl", "Response code: ${response.code()}")
+            android.util.Log.d("ShoppingRepositoryImpl", "Response message: ${response.message()}")
+            android.util.Log.d("ShoppingRepositoryImpl", "Response body is null: ${response.body() == null}")
+            
             if (response.isSuccessful && response.body() != null) {
                 val apiResponse = response.body()!!
+                android.util.Log.d("ShoppingRepositoryImpl", "ApiResponse: $apiResponse")
+                android.util.Log.d("ShoppingRepositoryImpl", "ApiResponse.success: ${apiResponse.success}")
+                android.util.Log.d("ShoppingRepositoryImpl", "ApiResponse.message: ${apiResponse.message}")
+                android.util.Log.d("ShoppingRepositoryImpl", "ApiResponse.data: ${apiResponse.data}")
+                
                 if (apiResponse.success) {
-                    Result.success(apiResponse.data.toDomain())
+                    // Verificar se a resposta da API tem dados válidos
+                    val responseData = apiResponse.data
+                    android.util.Log.d("ShoppingRepositoryImpl", "Response data: $responseData")
+                    
+                    // Se a API retornou dados válidos, usar eles
+                    if (responseData.description != null && responseData.id != null) {
+                        val createdItem = responseData.toDomain()
+                        android.util.Log.d("ShoppingRepositoryImpl", "Item created successfully with API data: $createdItem")
+                        android.util.Log.d("ShoppingRepositoryImpl", "=== END createShoppingItem SUCCESS ===")
+                        Result.success(createdItem)
+                    } else {
+                        // Se a API retornou sucesso mas sem dados válidos, usar os dados originais
+                        android.util.Log.w("ShoppingRepositoryImpl", "API returned success but with empty data, using original item")
+                        val originalItemWithId = item.copy(id = responseData.id ?: 0)
+                        android.util.Log.d("ShoppingRepositoryImpl", "=== END createShoppingItem SUCCESS (using original data) ===")
+                        Result.success(originalItemWithId)
+                    }
                 } else {
+                    android.util.Log.e("ShoppingRepositoryImpl", "ApiResponse not successful: ${apiResponse.message}")
+                    android.util.Log.d("ShoppingRepositoryImpl", "=== END createShoppingItem ERROR ===")
                     Result.failure(Exception(apiResponse.message ?: "Failed to create shopping item"))
                 }
             } else {
+                val errorBody = response.errorBody()?.string() ?: "No error body"
+                android.util.Log.e("ShoppingRepositoryImpl", "API call failed. Error body: $errorBody")
+                android.util.Log.d("ShoppingRepositoryImpl", "=== END createShoppingItem ERROR ===")
                 Result.failure(Exception("Create shopping item failed: ${response.message()}"))
             }
         } catch (e: Exception) {
+            android.util.Log.e("ShoppingRepositoryImpl", "Exception in createShoppingItem", e)
+            android.util.Log.d("ShoppingRepositoryImpl", "=== END createShoppingItem EXCEPTION ===")
             Result.failure(e)
         }
     }

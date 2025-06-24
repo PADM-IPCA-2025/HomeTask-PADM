@@ -8,14 +8,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import pt.ipca.hometask.data.repository.AuthRepository
-import pt.ipca.hometask.domain.model.ItemCategory
 import pt.ipca.hometask.domain.model.ShoppingItem
 import pt.ipca.hometask.domain.repository.ShoppingRepository
 
 data class AddItemUiState(
     val isLoading: Boolean = false,
-    val categories: List<ItemCategory> = emptyList(),
-    val selectedCategory: ItemCategory? = null,
     val isItemSaved: Boolean = false,
     val errorMessage: String? = null,
     val isFormValid: Boolean = false,
@@ -45,9 +42,6 @@ class AddItemViewModel(
 
     init {
         checkUserAuthentication()
-        if (authRepository.isLoggedIn()) {
-            loadCategories()
-        }
     }
 
     private fun checkUserAuthentication() {
@@ -62,39 +56,6 @@ class AddItemViewModel(
             _uiState.value = _uiState.value.copy(
                 errorMessage = "Usuário não está logado"
             )
-        }
-    }
-
-    private fun loadCategories() {
-        if (!authRepository.isLoggedIn()) {
-            _uiState.value = _uiState.value.copy(
-                errorMessage = "Usuário não está logado"
-            )
-            return
-        }
-
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
-
-            try {
-                val result = repository.getAllItemCategories()
-                result.onSuccess { categories ->
-                    _uiState.value = _uiState.value.copy(
-                        categories = categories,
-                        isLoading = false
-                    )
-                }.onFailure { exception ->
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        errorMessage = "Erro ao carregar categorias: ${exception.message}"
-                    )
-                }
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    errorMessage = "Erro inesperado: ${e.message}"
-                )
-            }
         }
     }
 
@@ -117,11 +78,6 @@ class AddItemViewModel(
         }
     }
 
-    fun selectCategory(category: ItemCategory) {
-        _uiState.value = _uiState.value.copy(selectedCategory = category)
-        validateForm()
-    }
-
     private fun validateForm() {
         val isValid = authRepository.isLoggedIn() &&
                 _itemName.value.isNotBlank() &&
@@ -130,14 +86,28 @@ class AddItemViewModel(
                 _quantity.value.toFloat() > 0 &&
                 _pricePerUnit.value.isNotBlank() &&
                 _pricePerUnit.value.toFloatOrNull() != null &&
-                _pricePerUnit.value.toFloat() > 0 &&
-                _uiState.value.selectedCategory != null
+                _pricePerUnit.value.toFloat() > 0
 
         _uiState.value = _uiState.value.copy(isFormValid = isValid)
     }
 
     fun saveItem(shoppingListId: Int) {
+        android.util.Log.d("AddItemViewModel", "=== START saveItem ===")
+        android.util.Log.d("AddItemViewModel", "ShoppingListId: $shoppingListId")
+        android.util.Log.d("AddItemViewModel", "Item name: ${_itemName.value}")
+        android.util.Log.d("AddItemViewModel", "Quantity: ${_quantity.value}")
+        android.util.Log.d("AddItemViewModel", "Price per unit: ${_pricePerUnit.value}")
+        
+        if (shoppingListId <= 0) {
+            android.util.Log.e("AddItemViewModel", "Invalid shoppingListId: $shoppingListId")
+            _uiState.value = _uiState.value.copy(
+                errorMessage = "ID da lista de compras inválido"
+            )
+            return
+        }
+        
         if (!authRepository.isLoggedIn()) {
+            android.util.Log.e("AddItemViewModel", "User not logged in")
             _uiState.value = _uiState.value.copy(
                 errorMessage = "Usuário não está logado"
             )
@@ -145,6 +115,7 @@ class AddItemViewModel(
         }
 
         if (!_uiState.value.isFormValid) {
+            android.util.Log.e("AddItemViewModel", "Form is not valid")
             _uiState.value = _uiState.value.copy(
                 errorMessage = "Por favor, preencha todos os campos corretamente"
             )
@@ -153,6 +124,7 @@ class AddItemViewModel(
 
         val userId = authRepository.getUserId()
         if (userId == null) {
+            android.util.Log.e("AddItemViewModel", "User ID not found")
             _uiState.value = _uiState.value.copy(
                 errorMessage = "ID do usuário não encontrado"
             )
@@ -160,34 +132,78 @@ class AddItemViewModel(
         }
 
         viewModelScope.launch {
+            android.util.Log.d("AddItemViewModel", "Starting to create shopping item...")
             _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
 
             try {
-                val selectedCategory = _uiState.value.selectedCategory!!
-
+                // Validações adicionais
+                val description = _itemName.value.trim()
+                val quantity = _quantity.value.toFloatOrNull()
+                val price = _pricePerUnit.value.toFloatOrNull()
+                
+                if (description.isBlank()) {
+                    android.util.Log.e("AddItemViewModel", "Description is blank")
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        errorMessage = "Nome do item não pode estar vazio"
+                    )
+                    return@launch
+                }
+                
+                if (quantity == null || quantity <= 0) {
+                    android.util.Log.e("AddItemViewModel", "Invalid quantity: ${_quantity.value}")
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        errorMessage = "Quantidade deve ser um número maior que zero"
+                    )
+                    return@launch
+                }
+                
+                if (price == null || price <= 0) {
+                    android.util.Log.e("AddItemViewModel", "Invalid price: ${_pricePerUnit.value}")
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        errorMessage = "Preço deve ser um número maior que zero"
+                    )
+                    return@launch
+                }
+                
                 val newItem = ShoppingItem(
-                    description = _itemName.value.trim(),
-                    quantity = _quantity.value.toFloat(),
+                    description = description,
+                    quantity = quantity,
                     state = "pendente",
-                    price = _pricePerUnit.value.toFloat(),
+                    price = price,
                     shoppingListId = shoppingListId,
-                    itemCategoryId = selectedCategory.id!!
+                    itemCategoryId = 1 // Sempre usar categoria 1
                 )
+                
+                android.util.Log.d("AddItemViewModel", "Created ShoppingItem object: $newItem")
+                android.util.Log.d("AddItemViewModel", "Item description: ${newItem.description}")
+                android.util.Log.d("AddItemViewModel", "Item quantity: ${newItem.quantity}")
+                android.util.Log.d("AddItemViewModel", "Item state: ${newItem.state}")
+                android.util.Log.d("AddItemViewModel", "Item price: ${newItem.price}")
+                android.util.Log.d("AddItemViewModel", "Item shoppingListId: ${newItem.shoppingListId}")
+                android.util.Log.d("AddItemViewModel", "Item itemCategoryId: ${newItem.itemCategoryId}")
 
                 val result = repository.createShoppingItem(newItem)
+                android.util.Log.d("AddItemViewModel", "Repository call completed")
+                
                 result.onSuccess { createdItem ->
+                    android.util.Log.d("AddItemViewModel", "Item created successfully: $createdItem")
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         isItemSaved = true
                     )
                     clearForm()
                 }.onFailure { exception ->
+                    android.util.Log.e("AddItemViewModel", "Failed to create item", exception)
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         errorMessage = "Erro ao salvar item: ${exception.message}"
                     )
                 }
             } catch (e: Exception) {
+                android.util.Log.e("AddItemViewModel", "Unexpected error creating item", e)
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     errorMessage = "Erro inesperado: ${e.message}"
@@ -201,7 +217,6 @@ class AddItemViewModel(
         _quantity.value = ""
         _pricePerUnit.value = ""
         _uiState.value = _uiState.value.copy(
-            selectedCategory = null,
             isFormValid = false
         )
     }

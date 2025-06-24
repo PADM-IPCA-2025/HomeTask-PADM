@@ -12,6 +12,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
@@ -24,6 +26,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.foundation.layout.IntrinsicSize
+import kotlin.math.roundToInt
 import pt.ipca.hometask.R
 import pt.ipca.hometask.presentation.viewModel.shopping.ShoppingListTab
 import pt.ipca.hometask.domain.model.ShoppingList
@@ -36,6 +45,7 @@ fun ShoppingListsScreen(
     onProfileClick: () -> Unit = {},
     onClosestSupermarketClick: () -> Unit = {},
     onAddClick: () -> Unit = {},
+    onSlideAction: (ShoppingList, Boolean) -> Unit = { _, _ -> },
     inProgressLists: List<ShoppingList> = emptyList(),
     historyLists: List<ShoppingList> = emptyList(),
     selectedTab: ShoppingListTab = ShoppingListTab.IN_PROGRESS,
@@ -73,7 +83,7 @@ fun ShoppingListsScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 TabButton(
-                    text = "In progress",
+                    text = "In Progress",
                     isSelected = selectedTab == ShoppingListTab.IN_PROGRESS,
                     onClick = { onTabSelected(ShoppingListTab.IN_PROGRESS) },
                     modifier = Modifier.weight(1f)
@@ -117,6 +127,7 @@ fun ShoppingListsScreen(
                             shoppingList = shoppingList,
                             isHistory = selectedTab == ShoppingListTab.HISTORY,
                             onClick = { onListClick(shoppingList.id ?: 0) },
+                            onSlideAction = { list, moveToHistory -> onSlideAction(list, moveToHistory) },
                             total = if (index < currentTotals.size) currentTotals[index] else 0.0
                         )
                         Spacer(modifier = Modifier.height(16.dp))
@@ -191,88 +202,181 @@ fun ShoppingListCard(
     shoppingList: ShoppingList,
     isHistory: Boolean = false,
     onClick: () -> Unit = {},
+    onSlideAction: (ShoppingList, Boolean) -> Unit = { _, _ -> },
     total: Double = 0.0
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() },
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 2.dp
-        ),
-        shape = RoundedCornerShape(12.dp)
+    var offsetX by remember { mutableStateOf(0f) }
+    val density = LocalDensity.current
+    
+    Box(
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Column(
+        // Background action buttons
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .height(IntrinsicSize.Min)
+                .align(Alignment.CenterEnd)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
+            // Button para mover para histórico (quando está em progresso)
+            if (!isHistory) {
+                Box(
+                    modifier = Modifier
+                        .background(
+                            color = colorResource(id = R.color.secondary_blue),
+                            shape = RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp)
+                        )
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.History,
+                            contentDescription = "Move to History",
+                            tint = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Text(
+                            text = "History",
+                            color = Color.White,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            } else {
+                // Button para mover para progresso (quando está no histórico)
+                Box(
+                    modifier = Modifier
+                        .background(
+                            color = colorResource(id = R.color.secondary_blue),
+                            shape = RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp)
+                        )
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Move to Progress",
+                            tint = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Text(
+                            text = "Progress",
+                            color = Color.White,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
+        }
+        
+        // Main card
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .offset { IntOffset(offsetX.roundToInt(), 0) }
+                .pointerInput(Unit) {
+                    detectDragGestures(
+                        onDragEnd = {
+                            if (offsetX < -100) {
+                                // Slide para a esquerda - executar ação
+                                onSlideAction(shoppingList, !isHistory)
+                            }
+                            offsetX = 0f
+                        }
+                    ) { _, dragAmount ->
+                        offsetX += dragAmount.x
+                        // Limitar o slide para a esquerda
+                        if (offsetX > 0) offsetX = 0f
+                        if (offsetX < -150) offsetX = -150f
+                    }
+                }
+                .clickable { onClick() }
+                .zIndex(1f),
+            colors = CardDefaults.cardColors(
+                containerColor = Color.White
+            ),
+            elevation = CardDefaults.cardElevation(
+                defaultElevation = 2.dp
+            ),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
             ) {
-                Column(
-                    modifier = Modifier.weight(1f)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Column(
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            text = shoppingList.title ?: "Untitled List",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = colorResource(id = R.color.secondary_blue)
+                        )
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Text(
+                            text = if (isHistory)
+                                "Concluded at ${shoppingList.endDate}"
+                            else
+                                "In Progress",
+                            fontSize = 14.sp,
+                            color = colorResource(id = R.color.secondary_blue).copy(alpha = 0.7f)
+                        )
+                    }
+
+                    if (!isHistory) {
+                        Icon(
+                            imageVector = Icons.Default.ShoppingCart,
+                            contentDescription = "Shopping Cart",
+                            tint = colorResource(id = R.color.secondary_blue).copy(alpha = 0.7f),
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                HorizontalDivider(
+                    color = colorResource(id = R.color.secondary_blue).copy(alpha = 0.2f),
+                    thickness = 1.dp
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = shoppingList.title ?: "Untitled List",
+                        text = "Total :",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Medium,
                         color = colorResource(id = R.color.secondary_blue)
                     )
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
                     Text(
-                        text = if (isHistory)
-                            "Concluded at ${shoppingList.endDate}"
-                        else
-                            "In Progress",
-                        fontSize = 14.sp,
-                        color = colorResource(id = R.color.secondary_blue).copy(alpha = 0.7f)
+                        text = "$${String.format("%.2f", total)}",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colorResource(id = R.color.secondary_blue)
                     )
                 }
-
-                if (!isHistory) {
-                    Icon(
-                        imageVector = Icons.Default.ShoppingCart,
-                        contentDescription = "Shopping Cart",
-                        tint = colorResource(id = R.color.secondary_blue).copy(alpha = 0.7f),
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            HorizontalDivider(
-                color = colorResource(id = R.color.secondary_blue).copy(alpha = 0.2f),
-                thickness = 1.dp
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Total :",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = colorResource(id = R.color.secondary_blue)
-                )
-                Text(
-                    text = "$${String.format("%.2f", total)}",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = colorResource(id = R.color.secondary_blue)
-                )
             }
         }
     }

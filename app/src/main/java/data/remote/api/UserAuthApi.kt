@@ -6,33 +6,30 @@ import retrofit2.http.*
 
 interface UserAuthApi {
 
-    @POST("api/auth/user")
+    @POST("auth/user")
     suspend fun register(@Body user: UserDto): Response<ApiResponse<UserDto>>
 
-    @POST("api/auth/user/login")
+    @POST("auth/user/login")
     suspend fun login(@Body loginRequest: LoginRequest): Response<ApiResponse<UserDto>> // Com ApiResponse
 
-    @POST("api/auth/user/forgot-password")
+    @POST("auth/user/forgot-password")
     suspend fun forgotPassword(@Body request: ForgotPasswordRequest): Response<Unit>
 
-    @POST("api/auth/user/verify-code")
+    @POST("auth/user/verify-code")
     suspend fun verifyCode(@Body request: VerifyCodeRequest): Response<Unit>
 
-    @POST("api/auth/user/verify-code-fp")
+    @POST("auth/user/verify-code-fp")
     suspend fun verifyCodeForgotPassword(@Body request: VerifyCodeRequest): Response<Unit>
 
-    @POST("api/auth/user/reset-password")
+    @POST("auth/user/reset-password")
     suspend fun resetPassword(@Body request: ResetPasswordRequest): Response<Unit>
 
-    @GET("api/auth/user")
-    suspend fun getAllUsers(): Response<ApiResponse<UserDto>>
+    @GET("auth/user")
+    suspend fun getAllUsers(): Response<ApiResponse<UsersListDataDto>>
 
-    @GET("api/auth/users")
-    suspend fun listAllUsers(): Response<ApiResponse<List<UserDto>>>
-
-    @PUT("api/auth/user/{id}")
+    @PUT("auth/user/{id}")
     suspend fun updateUser(@Path("id") id: Int, @Body user: UserDto): Response<UserDto>
 
-    @DELETE("api/auth/user/{id}")
+    @DELETE("auth/user/{id}")
     suspend fun deleteUser(@Path("id") id: Int): Response<Unit>
 }

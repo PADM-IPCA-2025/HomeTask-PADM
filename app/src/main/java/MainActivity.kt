@@ -34,6 +34,7 @@ import presentation.ui.home.AddEditHouseScreen
 import presentation.ui.task.TasksMenuScreen
 import presentation.ui.task.AddEditTaskScreen
 import presentation.ui.home.InviteResidentScreen
+import pt.ipca.hometask.presentation.ui.shopping.ClosestSuperMarketScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -323,7 +324,7 @@ fun NavigationRouter() {
                     navController.navigate("editProfile")
                 },
                 onClosestSupermarketClick = {
-                    Log.d("NavigationRouter", "Funcionalidade de supermercado mais próximo ainda não implementada")
+                    navController.navigate("closestSupermarket")
                 },
                 onCreateListClick = {
                     Log.d("NavigationRouter", "Criar lista será feito via dialog no próprio screen")
@@ -360,7 +361,7 @@ fun NavigationRouter() {
                     navController.navigate("editProfile")
                 },
                 onClosestSupermarketClick = {
-                    Log.d("NavigationRouter", "Funcionalidade de supermercado mais próximo ainda não implementada")
+                    navController.navigate("closestSupermarket")
                 },
                 onCreateListClick = {
                     Log.d("NavigationRouter", "Criar lista será feito via dialog no próprio screen")
@@ -485,14 +486,21 @@ fun NavigationRouter() {
             val homeMenuViewModel: HomeMenuViewModel = viewModel(parentEntry)
             val userId = homeMenuViewModel.uiState.value.currentUserId
             val addTaskViewModel: pt.ipca.hometask.presentation.viewModel.task.AddTaskViewModel = viewModel()
+            
+            // Carregar residentes quando o ecrã é aberto
+            LaunchedEffect(homeId) {
+                addTaskViewModel.loadResidentsByHomeId(homeId)
+            }
+            
             AddEditTaskScreen(
                 isEditMode = false,
+                residents = addTaskViewModel.residents.value,
                 onBackClick = { navController.popBackStack() },
-                onSaveClick = { title, description, group, status, date ->
+                onSaveClick = { title, description, selectedResidentId, status, date ->
                     addTaskViewModel.createTask(
                         title = title,
                         description = description,
-                        group = group,
+                        selectedResidentId = selectedResidentId,
                         status = status,
                         date = date,
                         homeId = homeId,
@@ -515,6 +523,39 @@ fun NavigationRouter() {
                 onSendClick = { email -> inviteResidentViewModel.inviteResidentByEmail(email, homeId) },
                 onHomeClick = { navController.navigate("homeMenu") },
                 onProfileClick = { navController.navigate("editProfile") }
+            )
+        }
+
+        composable("closestSupermarket") {
+            ClosestSuperMarketScreen(
+                onBackClick = { navController.popBackStack() },
+                onHomeClick = { navController.navigate("homeMenu") },
+                onProfileClick = { navController.navigate("editProfile") }
+            )
+        }
+
+        composable(
+            "shopping/{homeId}",
+            arguments = listOf(navArgument("homeId") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val homeId = backStackEntry.arguments?.getInt("homeId") ?: 0
+            Log.d("NavigationRouter", "Renderizando ShoppingListsScreenContainer para homeId: $homeId")
+            ShoppingListsScreenContainer(
+                homeId = homeId,
+                onBackClick = { navController.popBackStack() },
+                onListClick = { listId ->
+                    navController.navigate("shoppingList/$listId")
+                },
+                onHomeClick = { navController.navigate("homeMenu") },
+                onProfileClick = { navController.navigate("editProfile") },
+                onClosestSupermarketClick = {
+                    navController.navigate("closestSupermarket")
+                },
+                onLoginRequired = {
+                    navController.navigate("login") {
+                        popUpTo("homeMenu") { inclusive = true }
+                    }
+                }
             )
         }
     }

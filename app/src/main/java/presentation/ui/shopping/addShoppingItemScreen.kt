@@ -10,8 +10,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -43,7 +41,6 @@ fun AddItemScreen(
     val quantity by viewModel.quantity.collectAsState()
     val pricePerUnit by viewModel.pricePerUnit.collectAsState()
 
-    var showCategoryDialog by remember { mutableStateOf(false) }
     var showErrorDialog by remember { mutableStateOf(false) }
 
     // Verificar se usuário está logado
@@ -142,29 +139,6 @@ fun AddItemScreen(
                     .padding(start = 24.dp)
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Category Dropdown
-            Text(
-                text = "Category",
-                fontSize = 14.sp,
-                color = colorResource(id = R.color.secondary_blue).copy(alpha = 0.7f),
-                modifier = Modifier.padding(start = 24.dp, bottom = 8.dp)
-            )
-            DropdownField(
-                value = uiState.selectedCategory?.description ?: "",
-                placeholder = "Select category",
-                isLoading = uiState.isLoading && uiState.categories.isEmpty(),
-                onClick = {
-                    if (!uiState.isLoading && uiState.categories.isNotEmpty()) {
-                        showCategoryDialog = true
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth(0.9f)
-                    .padding(start = 24.dp)
-            )
-
             Spacer(modifier = Modifier.height(16.dp))
 
             // Mostrar informações do usuário se necessário
@@ -220,76 +194,6 @@ fun AddItemScreen(
                     color = colorResource(id = R.color.secondary_blue)
                 )
             }
-        }
-
-        // Category Selection Dialog
-        if (showCategoryDialog && !uiState.isLoading) {
-            AlertDialog(
-                onDismissRequest = { showCategoryDialog = false },
-                title = {
-                    Text(
-                        text = "Select Category",
-                        color = colorResource(id = R.color.secondary_blue)
-                    )
-                },
-                text = {
-                    Column {
-                        if (uiState.categories.isEmpty()) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(100.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "No categories available",
-                                    color = colorResource(id = R.color.secondary_blue).copy(alpha = 0.6f)
-                                )
-                            }
-                        } else {
-                            uiState.categories.forEach { category ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable {
-                                            viewModel.selectCategory(category)
-                                            showCategoryDialog = false
-                                        }
-                                        .padding(vertical = 12.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    RadioButton(
-                                        selected = uiState.selectedCategory?.id == category.id,
-                                        onClick = {
-                                            viewModel.selectCategory(category)
-                                            showCategoryDialog = false
-                                        },
-                                        colors = RadioButtonDefaults.colors(
-                                            selectedColor = colorResource(id = R.color.secondary_blue)
-                                        )
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = category.description,
-                                        color = colorResource(id = R.color.secondary_blue)
-                                    )
-                                }
-                            }
-                        }
-                    }
-                },
-                confirmButton = {
-                    TextButton(
-                        onClick = { showCategoryDialog = false }
-                    ) {
-                        Text(
-                            text = "Cancel",
-                            color = colorResource(id = R.color.secondary_blue)
-                        )
-                    }
-                },
-                containerColor = colorResource(id = R.color.background)
-            )
         }
 
         // Error Dialog
@@ -350,60 +254,6 @@ fun AddItemScreenContainer(
     )
 }
 
-@Composable
-private fun DropdownField(
-    value: String,
-    placeholder: String,
-    isLoading: Boolean = false,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier
-            .width(328.dp)
-            .height(60.dp)
-            .clickable { if (!isLoading) onClick() }
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = if (value.isEmpty()) placeholder else value,
-                fontSize = 16.sp,
-                color = if (value.isEmpty())
-                    colorResource(id = R.color.secondary_blue).copy(alpha = 0.6f)
-                else
-                    colorResource(id = R.color.secondary_blue)
-            )
-            if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    color = colorResource(id = R.color.secondary_blue),
-                    strokeWidth = 2.dp
-                )
-            } else {
-                Icon(
-                    imageVector = Icons.Default.KeyboardArrowDown,
-                    contentDescription = "Dropdown",
-                    tint = colorResource(id = R.color.secondary_blue),
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-        }
-        HorizontalDivider(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth(),
-            color = colorResource(id = R.color.secondary_blue),
-            thickness = 1.dp
-        )
-    }
-}
-
 @Preview(showBackground = true)
 @Composable
 fun AddItemScreenPreview() {
@@ -431,9 +281,6 @@ fun AddItemScreenPreview() {
             Spacer(modifier = Modifier.height(24.dp))
             Text("Price p/ unit", fontSize = 14.sp, color = Color.Gray, modifier = Modifier.padding(bottom = 8.dp))
             CustomTextBox(value = "1.50", onValueChange = { }, placeholder = "Enter price per unit")
-            Spacer(modifier = Modifier.height(24.dp))
-            Text("Category", fontSize = 14.sp, color = Color.Gray, modifier = Modifier.padding(bottom = 8.dp))
-            DropdownField(value = "Laticínios", placeholder = "Select category", onClick = {})
         }
 
         Column(

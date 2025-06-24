@@ -16,6 +16,19 @@ data class UserDto(
     @SerializedName("mobileToken") val mobileToken: String? = null
 )
 
+// DTO para a estrutura aninhada da resposta de listagem de utilizadores
+data class UsersListDataDto(
+    @SerializedName("status") val status: Int,
+    @SerializedName("users") val users: List<UserDto>
+)
+
+// DTO para a resposta completa de listagem de utilizadores
+data class UsersListResponseDto(
+    @SerializedName("success") val success: Boolean,
+    @SerializedName("message") val message: String,
+    @SerializedName("data") val data: UsersListDataDto
+)
+
 data class LoginRequest(
     @SerializedName("email") val email: String,
     @SerializedName("password") val password: String,

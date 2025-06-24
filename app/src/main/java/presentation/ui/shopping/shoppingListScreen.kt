@@ -84,7 +84,7 @@ fun ShoppingListScreen(
                 .fillMaxSize()
                 .statusBarsPadding()
                 .padding(horizontal = 16.dp)
-                .padding(bottom = 70.dp)
+                .padding(bottom = 170.dp)
         ) {
             TopBar(
                 title = uiState.shoppingList?.title ?: "Shopping List",
@@ -164,7 +164,7 @@ fun ShoppingListScreen(
                     } else {
                         uiState.shoppingItems.forEach { item ->
                             ShoppingItem(
-                                itemName = item.description,
+                                itemName = item.description ?: "Sem descrição",
                                 quantity = item.quantity.toInt(),
                                 price = item.price.toDouble(),
                                 isCompleted = item.state == "comprado",
@@ -230,6 +230,8 @@ fun ShoppingListScreen(
                         color = colorResource(id = R.color.secondary_blue)
                     )
                 }
+                
+                Spacer(modifier = Modifier.height(20.dp))
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -240,7 +242,7 @@ fun ShoppingListScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
-                .padding(start = 16.dp, end = 16.dp, bottom = 80.dp),
+                .padding(start = 16.dp, end = 16.dp, bottom = 90.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             if (!uiState.isLoading) {
@@ -274,6 +276,7 @@ fun ShoppingListScreen(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
+                .padding(bottom = 8.dp)
         ) {
             BottomMenuBar(
                 onHomeClick = onHomeClick,
@@ -378,7 +381,7 @@ fun ShoppingItemCard(
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 Text(
-                    text = item.description,
+                    text = item.description ?: "Sem descrição",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
